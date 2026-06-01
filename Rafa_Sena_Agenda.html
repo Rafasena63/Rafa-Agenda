@@ -25,19 +25,35 @@ const fbdb=firebase.database();
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body,#root{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif}
+html,body,#root{height:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif}
+body{overflow:hidden}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
 ::-webkit-scrollbar-thumb:hover{background:#cbd5e1}
 input,button,select{font-family:inherit}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* Mobile */
+@media(max-width:700px){
+  body{overflow:auto}
+  #root{height:auto;min-height:100%}
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 const{useState,useEffect,useRef}=React;
+
+/* ── MOBILE DETECTION ─────────────── */
+function useIsMobile(){
+  const[m,sM]=useState(()=>window.innerWidth<=700);
+  useEffect(()=>{
+    const fn=()=>sM(window.innerWidth<=700);
+    window.addEventListener('resize',fn);return()=>window.removeEventListener('resize',fn);
+  },[]);
+  return m;
+}
 
 /* ── ICONS ────────────────────────── */
 const IC={
@@ -1156,7 +1172,7 @@ function WeekTaskCard({t,day,dragTask,onDragStart,onDragEnd,onPriority,onDelete,
 }
 
 /* ── HOY PANEL ── agenda de slots en TRABAJO + lista VARIOS ── */
-function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios,onAddVarios,onDeleteVarios,onUpdateVarios,onMoveToWork,onMoveToWeek,onMoveToBlock,allBlocks,blockNames,onDeleteBlock}){
+function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios,onAddVarios,onDeleteVarios,onUpdateVarios,onMoveToWork,onMoveToWeek,onMoveToBlock,allBlocks,blockNames,onDeleteBlock,isMobile}){
   // work es ahora {slot: [{id,text,priority,...}]}
   const[addingSlot,sAddingSlot]=useState(null);// slot key donde se está añadiendo
   const[ntW,sNtW]=useState('');
@@ -1206,33 +1222,25 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
 
   return(
     <div style={{background:'white',border:'1px solid #e8ecf0',borderRadius:10,marginBottom:14,overflow:'hidden',
-      height:'min(620px,60vh)',display:'flex',flexDirection:'column'}}>
+      height:isMobile?'auto':'min(620px,60vh)',display:'flex',flexDirection:'column'}}>
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px 8px',borderBottom:'1px solid #f1f5f9',flexShrink:0}}>
         <span style={{fontSize:10,fontWeight:750,color:'#1e293b',letterSpacing:'0.1em'}}>HOY</span>
-        <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
           <span style={{fontSize:9,color:'#94a3b8'}}>{new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}</span>
-          <span style={{fontSize:9,color:'#d1d5db'}}>arrastra entre slots y listas</span>
-          <div style={{display:'flex',gap:8,alignItems:'center',borderLeft:'1px solid #f1f5f9',paddingLeft:10}}>
-            {PL.map(p=>(
-              <span key={p} style={{display:'flex',alignItems:'center',gap:3,fontSize:9,color:'#94a3b8'}}>
-                <span style={{width:7,height:7,borderRadius:'50%',background:PR[p].dot,display:'inline-block'}}/>
-                {PR[p].lbl}
-              </span>
-            ))}
-          </div>
+          {!isMobile&&<span style={{fontSize:9,color:'#d1d5db'}}>arrastra entre slots y listas</span>}
         </div>
       </div>
       {/* Body */}
-      <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+      <div style={{display:'flex',flex:1,overflow:'hidden',flexDirection:isMobile?'column':'row'}}>
 
         {/* ── TRABAJO — agenda de slots ── */}
-        <div style={{flex:'0 0 62%',display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #f1f5f9'}}>
+        <div style={{flex:isMobile?'none':'0 0 62%',display:'flex',flexDirection:'column',overflow:'hidden',borderRight:isMobile?'none':'1px solid #f1f5f9',borderBottom:isMobile?'1px solid #f1f5f9':'none'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 12px',borderBottom:'1px solid #f4f6f8',flexShrink:0}}>
             <span style={{fontSize:10,fontWeight:700,color:'#64748b',letterSpacing:'0.06em'}}>TRABAJO</span>
             <span style={{fontSize:9,color:'#cbd5e1'}}>{totalWorkCount} tarea{totalWorkCount!==1?'s':''}</span>
           </div>
-          <div style={{flex:1,overflowY:'auto'}}>
+          <div style={{flex:1,overflowY:'auto',maxHeight:isMobile?300:'none'}}>
             {WORK_SLOTS.map(slot=>{
               const isHour=isHourSlot(slot);const isNoche=slot==='noche';
               const slotTasks=work[slot]||[];
@@ -1591,6 +1599,7 @@ function Palette({onAdd,onClose,allBlocks}){
 /* ── APP ─────────────────────────── */
 function App(){
   const saved=load();
+  const isMobile=useIsMobile();
   const[cat,sCat]=useState('home');const[sb,setSb]=useState(true);
   const[filter,sFilter]=useState('all');const[search,sSearch]=useState('');const[palette,sPalette]=useState(false);
   const[tasks,sTasks]=useState(()=>saved?.tasks||seedTasks());
@@ -1787,10 +1796,29 @@ function App(){
   const deleteCat=(id)=>{sHiddenCats(p=>[...p.filter(x=>x!==id),id]);if(cat===id)sCat('home');};
 
   return(
-    <div style={{display:'flex',height:'100vh',background:'#f8fafc',overflow:'hidden'}}>
+    <div style={{display:'flex',flexDirection:isMobile?'column':'row',height:isMobile?'auto':'100vh',minHeight:isMobile?'100vh':'auto',background:'#f8fafc',overflow:isMobile?'visible':'hidden'}}>
       {palette&&<Palette onAdd={addTask} onClose={()=>sPalette(false)} allBlocks={allBlocks}/>}
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR — en móvil: barra de navegación inferior */}
+      {isMobile?(
+        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:'white',borderTop:'1px solid #e8ecf0',display:'flex',justifyContent:'space-around',padding:'6px 0 max(6px,env(safe-area-inset-bottom))'}}>
+          {[...allCats.filter(c=>c.id==='home'||c.id==='meses'),...sidebarCats.slice(0,5)].map(c=>{
+            const active=cat===c.id;
+            return(
+              <button key={c.id} onClick={()=>sCat(c.id)}
+                style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 8px',border:'none',background:'transparent',cursor:'pointer',color:active?'#2563eb':'#94a3b8',minWidth:44}}>
+                <Ico n={c.ico} s={18} c={active?'#2563eb':'#94a3b8'}/>
+                <span style={{fontSize:9,fontWeight:active?700:400,whiteSpace:'nowrap'}}>{c.label.slice(0,5)}</span>
+              </button>
+            );
+          })}
+          <button onClick={()=>sPalette(true)}
+            style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 8px',border:'none',background:'transparent',cursor:'pointer',color:'#2563eb',minWidth:44}}>
+            <Ico n="zap" s={18} c="#2563eb"/>
+            <span style={{fontSize:9,fontWeight:700}}>Nueva</span>
+          </button>
+        </div>
+      ):(
       <div style={{width:sb?182:44,flexShrink:0,background:'white',borderRight:'1px solid #e8ecf0',display:'flex',flexDirection:'column',transition:'width .18s ease',overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:sb?'space-between':'center',padding:'13px 10px',borderBottom:'1px solid #f1f5f9'}}>
           {sb&&<span style={{fontSize:12,fontWeight:750,color:'#1e293b',letterSpacing:'-0.02em',whiteSpace:'nowrap'}}>SO Personal</span>}
@@ -1874,56 +1902,59 @@ function App(){
           </div>
         )}
       </div>
+      )}{/* fin sidebar desktop */}
 
       {/* MAIN */}
-      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:isMobile?'visible':'hidden',minWidth:0,paddingBottom:isMobile?70:0}}>
         {/* HEADER */}
-        <div style={{height:48,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',background:'white',borderBottom:'1px solid #e8ecf0',flexShrink:0,gap:10}}>
-          <span style={{fontSize:13,fontWeight:700,color:'#1e293b',flexShrink:0}}>{allCats.find(c=>c.id===cat)?.label||cat.toUpperCase()}</span>
-          <div style={{display:'flex',alignItems:'center',gap:7,flex:1,justifyContent:'flex-end'}}>
+        <div style={{height:isMobile?52:48,display:'flex',alignItems:'center',justifyContent:'space-between',padding:isMobile?'0 12px':'0 16px',background:'white',borderBottom:'1px solid #e8ecf0',flexShrink:0,gap:8,position:isMobile?'sticky':'static',top:0,zIndex:100}}>
+          <span style={{fontSize:isMobile?14:13,fontWeight:700,color:'#1e293b',flexShrink:0}}>{allCats.find(c=>c.id===cat)?.label||cat.toUpperCase()}</span>
+          <div style={{display:'flex',alignItems:'center',gap:isMobile?5:7,flex:1,justifyContent:'flex-end'}}>
             {/* Indicador Firebase sync */}
             {syncStatus==='connecting'&&(
               <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#94a3b8',flexShrink:0}}>
                 <span style={{width:6,height:6,borderRadius:'50%',background:'#94a3b8',display:'inline-block',animation:'pulse 1s infinite'}}/>
-                Conectando…
+                {!isMobile&&'Conectando…'}
               </span>
             )}
             {syncStatus==='connected'&&(
-              <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#22c55e',flexShrink:0}} title="Sincronizado con Firebase">
+              <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#22c55e',flexShrink:0}}>
                 <span style={{width:6,height:6,borderRadius:'50%',background:'#22c55e',display:'inline-block'}}/>
-                Sincronizado
+                {!isMobile&&'Sincronizado'}
               </span>
             )}
             {syncStatus==='saving'&&(
               <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#f59e0b',flexShrink:0}}>
                 <span style={{width:6,height:6,borderRadius:'50%',background:'#f59e0b',display:'inline-block',animation:'pulse 1s infinite'}}/>
-                Guardando…
+                {!isMobile&&'Guardando…'}
               </span>
             )}
             {syncStatus==='saved'&&(
               <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#2563eb',flexShrink:0}}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Guardado
+                {!isMobile&&'Guardado'}
               </span>
             )}
             {syncStatus==='error'&&(
-              <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#ef4444',flexShrink:0}} title="Error de conexión con Firebase">
+              <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#ef4444',flexShrink:0}}>
                 <span style={{width:6,height:6,borderRadius:'50%',background:'#ef4444',display:'inline-block'}}/>
-                Sin conexión
+                {!isMobile&&'Sin conexión'}
               </span>
             )}
-            <div style={{width:1,height:20,background:'#e8ecf0',flexShrink:0}}/>
-            <button onClick={()=>sPalette(true)} style={{display:'flex',alignItems:'center',gap:5,padding:'5px 9px',borderRadius:6,border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',fontSize:11,flexShrink:0}}>
-              <Ico n="zap" s={12}/>Captura rápida<kbd style={{fontSize:9,color:'#cbd5e1',marginLeft:3}}>⌘K</kbd>
-            </button>
-            <div style={{width:1,height:20,background:'#e8ecf0'}}/>
+            {!isMobile&&<div style={{width:1,height:20,background:'#e8ecf0',flexShrink:0}}/>}
+            {!isMobile&&(
+              <button onClick={()=>sPalette(true)} style={{display:'flex',alignItems:'center',gap:5,padding:'5px 9px',borderRadius:6,border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',fontSize:11,flexShrink:0}}>
+                <Ico n="zap" s={12}/>Captura rápida<kbd style={{fontSize:9,color:'#cbd5e1',marginLeft:3}}>⌘K</kbd>
+              </button>
+            )}
+            {!isMobile&&<div style={{width:1,height:20,background:'#e8ecf0'}}/>}
             <div style={{position:'relative',flexShrink:0}}>
               <span style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',display:'flex'}}><Ico n="search" s={12} c="#94a3b8"/></span>
               <input value={search} onChange={e=>sSearch(e.target.value)} placeholder="Buscar..."
-                style={{paddingLeft:26,paddingRight:search?26:10,height:28,width:150,border:'1px solid #e8ecf0',borderRadius:6,fontSize:11,outline:'none',color:'#1e293b',background:'#f8fafc'}}/>
+                style={{paddingLeft:26,paddingRight:search?26:10,height:28,width:isMobile?120:150,border:'1px solid #e8ecf0',borderRadius:6,fontSize:11,outline:'none',color:'#1e293b',background:'#f8fafc'}}/>
               {search&&<button onClick={()=>sSearch('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',border:'none',background:'transparent',cursor:'pointer',display:'flex'}}><Ico n="x" s={11} c="#94a3b8"/></button>}
             </div>
-            {['all','red','yellow','blue'].map(f=>(
+            {!isMobile&&['all','red','yellow','blue'].map(f=>(
               <button key={f} onClick={()=>sFilter(f)}
                 style={{height:26,padding:'0 8px',borderRadius:13,fontSize:10,fontWeight:550,border:'1px solid',flexShrink:0,
                   borderColor:filter===f?(f==='all'?'#334155':f==='red'?'#fca5a5':f==='yellow'?'#fde68a':'#bae6fd'):'#e8ecf0',
@@ -1932,11 +1963,19 @@ function App(){
                 {f==='all'?'Todas':f==='red'?'● Urgentes':f==='yellow'?'● Impor.':'● Fácil'}
               </button>
             ))}
+            {isMobile&&['all','red','yellow','blue'].map(f=>(
+              <button key={f} onClick={()=>sFilter(f)} title={f==='all'?'Todas':f==='red'?'Urgentes':f==='yellow'?'Importantes':'Fácil'}
+                style={{width:22,height:22,borderRadius:'50%',border:`2px solid ${filter===f?(f==='all'?'#334155':PR[f]?.dot||'#e2e8f0'):'#e8ecf0'}`,
+                  background:filter===f?(f==='all'?'#1e293b':PR[f]?.dot||'transparent'):'transparent',
+                  cursor:'pointer',padding:0,flexShrink:0}}>
+                {f==='all'&&<span style={{fontSize:8,color:filter==='all'?'white':'#94a3b8',fontWeight:700}}>A</span>}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* CONTENT */}
-        <div style={{flex:1,overflowY:'auto',padding:'14px 16px'}}>
+        <div style={{flex:1,overflowY:isMobile?'visible':'auto',padding:isMobile?'10px 10px 0':'14px 16px'}}>
 
           {cat==='meses'&&(
             <MesesView allData={monthAllData} monthAIdx={monthAIdx} monthBIdx={monthBIdx}
@@ -1962,6 +2001,7 @@ function App(){
                 allBlocks={pickerBlocks}
                 blockNames={allBlockNames}
                 onDeleteBlock={deleteBlock}
+                isMobile={isMobile}
               />
 
               {/* SEMANA — Lun a Dom, sin Varios, más ancha */}
@@ -1985,7 +2025,7 @@ function App(){
           )}
 
           {cat!=='meses'&&(
-            <div style={{columns:cat==='home'?4:3,columnGap:10}}>
+            <div style={{columns:isMobile?1:cat==='home'?4:3,columnGap:10}}>
               {visibleBlocks.map((b,bIdx)=>(
                 <TaskBlock key={b.id} block={b}
                   blockName={blockNames[b.id]||b.name}
