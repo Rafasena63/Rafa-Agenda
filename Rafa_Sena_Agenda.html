@@ -231,9 +231,12 @@ function subscribeFirebase(onData){
     fbdb.ref(FB_PATH).on('value',snap=>{
       const val=snap.val();
       if(val){
-        // Guardar también en localStorage como caché
         try{localStorage.setItem(SK,JSON.stringify(val));}catch{}
         onData(val);
+      } else {
+        // Firebase vacío — limpiar localStorage también
+        try{localStorage.removeItem(SK);localStorage.removeItem(SK_OLD);}catch{}
+        window.dispatchEvent(new CustomEvent('fb-empty'));
       }
       window.dispatchEvent(new CustomEvent('fb-status',{detail:'connected'}));
     },err=>{
@@ -1175,7 +1178,25 @@ function App(){
       if(e.detail==='saved')setTimeout(()=>setSyncStatus('connected'),2000);
     };
     window.addEventListener('fb-status',fn);
-    return()=>window.removeEventListener('fb-status',fn);
+    // Si Firebase está vacío, resetear todo el estado
+    const fnEmpty=()=>{
+      sTasks(seedTasks());
+      sDayWork(seedDayWork());
+      sDayVarios(seedDayVarios());
+      sWeek(seedWeek());
+      sMonthAllData(seedMonthData());
+      sCustomBlocks([]);
+      sBlockNames({});
+      sBlockCats({});
+      sCustomCats([]);
+      sCollapsedBlocks({});
+      sHiddenBlocks([]);
+      sBlockOrderIds([]);
+      sCatOrder([]);
+      sHiddenCats([]);
+    };
+    window.addEventListener('fb-empty',fnEmpty);
+    return()=>{window.removeEventListener('fb-status',fn);window.removeEventListener('fb-empty',fnEmpty);};
   },[]);
 
   const handlePickFile=async()=>{
