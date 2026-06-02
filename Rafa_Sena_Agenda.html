@@ -288,15 +288,15 @@ function IBtn({ico,onClick,title,danger,active}){
   return(
     <button onClick={e=>{e.stopPropagation();onClick();}} title={title}
       onMouseEnter={()=>sH(true)} onMouseLeave={()=>sH(false)}
-      style={{width:20,height:20,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:4,border:'none',cursor:'pointer',padding:0,
+      style={{width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6,border:'none',cursor:'pointer',padding:0,
         background:active?'#eff6ff':h?(danger?'rgba(239,68,68,.1)':'rgba(15,23,42,.06)'):'transparent',
         color:active?'#2563eb':h?(danger?'#ef4444':'#475569'):'#94a3b8',transition:'all .1s'}}>
-      <Ico n={ico} s={11}/>
+      <Ico n={ico} s={14}/>
     </button>
   );
 }
 
-function PriorityDot({priority,onChange,hover,size=8}){
+function PriorityDot({priority,onChange,hover,size=9}){
   const px=PR[priority]||PR.blue;
   return(
     <button onClick={e=>{e.stopPropagation();onChange&&onChange(nextP(priority));}} title={`${px.lbl} → clic para cambiar`}
@@ -373,7 +373,7 @@ function TaskItem({task,onPriority,onEdit,onDelete,onToday,onToVarios,onToWeek,o
   const px=PR[task.priority]||PR.blue;
   return(
     <div onMouseEnter={()=>sH(true)} onMouseLeave={()=>{sH(false);}}
-      style={{display:'flex',alignItems:'center',gap:7,padding:compact?'3px 8px':'5px 10px',borderRadius:5,
+      style={{display:'flex',alignItems:'center',gap:7,padding:compact?'6px 10px':'8px 12px',borderRadius:5,
         background:h?'rgba(15,23,42,.025)':'transparent',borderLeft:`2px solid ${h?px.dot:'transparent'}`,
         transition:'all .1s',marginBottom:1,minWidth:0,position:'relative'}}>
       <PriorityDot priority={task.priority} onChange={onPriority} hover={h}/>
@@ -382,7 +382,7 @@ function TaskItem({task,onPriority,onEdit,onDelete,onToday,onToVarios,onToWeek,o
             onKeyDown={e=>{if(e.key==='Enter')commit();if(e.key==='Escape'){sEd(false);sDraft(task.text);}}}
             style={{flex:1,border:'none',outline:'none',background:'transparent',fontSize:compact?11:12,color:'#1e293b',fontFamily:'inherit'}}/>
         :<span onDoubleClick={()=>sEd(true)}
-            style={{flex:1,fontSize:compact?11:12,color:'#334155',lineHeight:'1.4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0,cursor:'default'}}>
+            style={{flex:1,fontSize:compact?13:14,color:'#334155',lineHeight:'1.4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0,cursor:'default'}}>
             {task.text}</span>}
       {h&&!ed&&(
         <div style={{display:'flex',gap:1,flexShrink:0,position:'relative'}}>
@@ -433,16 +433,16 @@ function TaskBlock({block,blockName,blockCat,allCats,allBlocks,blockNames,tasks,
   return(
     <div style={{background:'#fff',border:'1px solid #e8ecf0',borderRadius:9,overflow:'visible',breakInside:'avoid',marginBottom:10,position:'relative'}}>
       <div onClick={()=>!editName&&onCollapse(!collapsed)}
-        style={{display:'flex',alignItems:'center',gap:6,padding:'9px 11px',cursor:'pointer',borderBottom:collapsed?'none':'1px solid #f4f6f8',borderRadius:collapsed?9:'9px 9px 0 0'}}>
+        style={{display:'flex',alignItems:'center',gap:6,padding:'12px 13px',cursor:'pointer',borderBottom:collapsed?'none':'1px solid #f4f6f8',borderRadius:collapsed?9:'9px 9px 0 0'}}>
         {editName
           ?<input ref={nameRef} value={nameDraft} onChange={e=>sNameDraft(e.target.value)}
               onBlur={commitName} onClick={e=>e.stopPropagation()}
               onKeyDown={e=>{if(e.key==='Enter')commitName();if(e.key==='Escape'){sEditName(false);sNameDraft(blockName);}}}
               style={{flex:1,border:'none',borderBottom:'1px solid #bfdbfe',outline:'none',fontSize:11,fontWeight:650,color:'#1e293b',background:'transparent',fontFamily:'inherit',padding:'0 0 1px'}}/>
           :<span onDoubleClick={e=>{e.stopPropagation();sEditName(true);sNameDraft(blockName);}} title="Doble clic para renombrar"
-              style={{flex:1,fontSize:11,fontWeight:650,color:'#1e293b',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              style={{flex:1,fontSize:13,fontWeight:650,color:'#1e293b',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {blockName}</span>}
-        {tasks.length>0&&<span style={{fontSize:10,color:'#94a3b8',flexShrink:0}}>{tasks.length}</span>}
+        {tasks.length>0&&<span style={{fontSize:12,color:'#94a3b8',flexShrink:0}}>{tasks.length}</span>}
         {redC>0&&<span style={{fontSize:9,fontWeight:700,background:'#fef2f2',color:'#ef4444',borderRadius:3,padding:'1px 5px',flexShrink:0}}>{redC}!</span>}
         <div style={{display:'flex',gap:2,alignItems:'center',flexShrink:0,marginLeft:'auto'}}>
           <IBtn ico="plus" onClick={()=>{sAdd(true);onCollapse(false);}} title="Añadir tarea"/>
@@ -543,12 +543,12 @@ function WorkTaskCard({t,slot,dragging,onDragStart,onDragEnd,onUpdWork,onMoveToV
       onDragStart={e=>onDragStart(e,t.id,slot)}
       onDragEnd={onDragEnd}
       onMouseEnter={()=>setHov(true)} onMouseLeave={()=>{setHov(false);setShowDayPick(false);setShowBlkPick(false);}}
-      style={{display:'flex',alignItems:'center',gap:4,padding:'2px 5px',borderRadius:4,position:'relative',
+      style={{display:'flex',alignItems:'center',gap:4,padding:'6px 8px',borderRadius:6,position:'relative',
         background:'white',border:`1px solid ${PR[t.priority]?.ring||'#e2e8f0'}`,
         cursor:'grab',opacity:dragging?.id===t.id?0.35:1,boxShadow:'0 1px 2px rgba(0,0,0,.04)'}}>
       <span style={{color:'#d1d5db',display:'flex',flexShrink:0}}><Ico n="grip" s={8}/></span>
       <PriorityDot priority={t.priority} onChange={p=>onUpdWork(t.id,{priority:p},slot)} hover={false} size={6}/>
-      <span style={{fontSize:11,color:'#334155',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
+      <span style={{fontSize:14,color:'#334155',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
       {hov?(
         <div style={{display:'flex',gap:2,flexShrink:0,alignItems:'center'}}>
           <button onClick={e=>{e.stopPropagation();onMoveToVarios(t.id,slot);}} title="→ VARIOS"
@@ -599,12 +599,12 @@ function VariosTaskCard({t,dragging,onDragStart,onDragEnd,onUpdWork,onMoveToWeek
       onDragStart={e=>onDragStart(e,t.id)}
       onDragEnd={onDragEnd}
       onMouseEnter={()=>setHov(true)} onMouseLeave={()=>{setHov(false);setShowDayPick(false);setShowBlkPick(false);}}
-      style={{display:'flex',alignItems:'center',gap:5,padding:'4px 7px',borderRadius:5,marginBottom:3,position:'relative',
+      style={{display:'flex',alignItems:'center',gap:5,padding:'8px 10px',borderRadius:6,marginBottom:4,position:'relative',
         background:'white',border:`1px solid ${PR[t.priority]?.ring||'#e2e8f0'}`,
         cursor:'grab',opacity:dragging?.id===t.id?0.35:1,boxShadow:'0 1px 2px rgba(0,0,0,.04)'}}>
       <span style={{color:'#d1d5db',display:'flex',flexShrink:0}}><Ico n="grip" s={9}/></span>
       <PriorityDot priority={t.priority} onChange={p=>onUpdWork(t.id,{priority:p})} hover={false} size={7}/>
-      <span style={{fontSize:11,color:'#334155',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
+      <span style={{fontSize:14,color:'#334155',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
       {hov?(
         <div style={{display:'flex',gap:2,flexShrink:0,alignItems:'center'}}>
           <div style={{position:'relative'}}>
@@ -655,7 +655,7 @@ function WeekTaskCard({t,day,dragTask,onDragStart,onDragEnd,onPriority,onDelete,
         boxShadow:'0 1px 2px rgba(0,0,0,.04)',transition:'opacity .1s'}}>
       <span style={{color:'#d1d5db',display:'flex',flexShrink:0,marginTop:3}}><Ico n="grip" s={9}/></span>
       <PriorityDot priority={t.priority} onChange={p=>onPriority(day,t.id,p)} hover={false} size={7}/>
-      <span style={{fontSize:11,color:'#334155',lineHeight:'1.5',flex:1,wordBreak:'break-word'}}>{t.text}</span>
+      <span style={{fontSize:13,color:'#334155',lineHeight:'1.6',flex:1,wordBreak:'break-word'}}>{t.text}</span>
       <div style={{display:'flex',gap:2,flexShrink:0,marginTop:2,alignItems:'center'}}>
         {hov&&onMoveToToday&&(
           <button onClick={e=>{e.stopPropagation();onMoveToToday(t,day);}} title="→ HOY trabajo"
@@ -745,7 +745,7 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px 8px',borderBottom:'1px solid #f1f5f9',flexShrink:0}}>
         <span style={{fontSize:10,fontWeight:750,color:'#1e293b',letterSpacing:'0.1em'}}>HOY</span>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontSize:9,color:'#94a3b8'}}>{new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}</span>
+          <span style={{fontSize:11,color:'#94a3b8'}}>{new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}</span>
           {!isMobile&&<span style={{fontSize:9,color:'#d1d5db'}}>arrastra entre slots y listas</span>}
         </div>
       </div>
@@ -780,7 +780,7 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
                   {/* Etiqueta hora */}
                   <div style={{width:40,flexShrink:0,padding:'5px 6px 0 10px',textAlign:'right'}}>
                     <span style={{
-                      fontSize:isNoche?9:isHour?10:9,
+                      fontSize:isNoche?11:isHour?13:11,
                       fontWeight:isNow?700:isHour?500:400,
                       color:isNow?'#d97706':isNoche?'#94a3b8':isPastSlot?'#e2e8f0':isHour?'#64748b':'#cbd5e1',
                       letterSpacing:isNoche?'0.04em':'0',
@@ -812,7 +812,7 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
                           placeholder="Nueva tarea..."
                           style={{fontSize:11,border:'none',borderBottom:'1px solid #bfdbfe',outline:'none',background:'transparent',color:'#1e293b',fontFamily:'inherit',padding:'1px 0',width:'100%'}}/>
                       :<button onClick={()=>sAddingSlot(slot)}
-                          style={{fontSize:10,color:'transparent',border:'none',background:'transparent',cursor:'pointer',padding:'1px 0',textAlign:'left',width:'100%',borderRadius:2}}
+                          style={{fontSize:13,color:'transparent',border:'none',background:'transparent',cursor:'pointer',padding:'1px 0',textAlign:'left',width:'100%',borderRadius:2}}
                           onMouseEnter={e=>e.currentTarget.style.color='#94a3b8'} onMouseLeave={e=>e.currentTarget.style.color='transparent'}>
                           + añadir
                         </button>}
@@ -867,7 +867,7 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
   );
 }
 
-function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMoveToVarios,onMoveToBlock,allBlocks,blockNames,onDeleteBlock,weekOffset,onOffsetChange}){
+function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMoveToVarios,onMoveToBlock,allBlocks,blockNames,onDeleteBlock,weekOffset,onOffsetChange,isMobile}){
   const[addD,sAddD]=useState(null);const[nt,sNt]=useState('');
   const[dragTask,sDragTask]=useState(null);const[dragOver,sDragOver]=useState(null);
   const ref=useRef();
@@ -927,7 +927,7 @@ function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMo
           <span style={{fontSize:9,color:'#d1d5db'}}>arrastra entre días</span>
         </div>
       </div>
-      <div style={{display:'flex',gap:4}}>
+      <div style={{display:'flex',flexDirection:isMobile?'column':'row',gap:isMobile?8:4}}>
         {WDAYS.map(d=>{
           const tasks=weekData[d]||[];const isOver=dragOver===d;
           const dayDate=weekDates[d];const dayNum=dayDate.getDate();const dayMonth=dayDate.getMonth();const dayYear=dayDate.getFullYear();
@@ -936,24 +936,22 @@ function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMo
           const isFutureWeek=weekOffset>0;
           return(
             <div key={d} style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}>
-              <div style={{marginBottom:5,display:'flex',flexDirection:'column',alignItems:'flex-start',gap:1}}>
-                <div style={{display:'flex',alignItems:'center',gap:3}}>
-                  <span style={{fontSize:10,fontWeight:700,color:isT?'#2563eb':isPast&&!isFutureWeek?'#cbd5e1':'#64748b'}}>{WLB[d]}</span>
-                  {isT&&<span style={{width:5,height:5,borderRadius:'50%',background:'#2563eb',display:'inline-block'}}/>}
-                  {tasks.length>0&&<span style={{fontSize:9,fontWeight:400,color:'#cbd5e1'}}>({tasks.length})</span>}
-                </div>
-                <span style={{fontSize:isT?13:11,fontWeight:isT?700:400,color:isT?'#2563eb':isPast&&!isFutureWeek?'#d1d5db':'#94a3b8',lineHeight:1}}>
-                  {dayNum}{isT&&<span style={{fontSize:8,fontWeight:500,color:'#93c5fd',marginLeft:2}}>{MONTH_NAMES[dayMonth].slice(0,3).toUpperCase()}</span>}
+              <div style={{marginBottom:5,display:'flex',flexDirection:'row',alignItems:'center',gap:6}}>
+                <span style={{fontSize:isMobile?15:12,fontWeight:700,color:isT?'#2563eb':isPast&&!isFutureWeek?'#cbd5e1':'#64748b'}}>{WLB[d]}</span>
+                {isT&&<span style={{width:6,height:6,borderRadius:'50%',background:'#2563eb',display:'inline-block',flexShrink:0}}/>}
+                <span style={{fontSize:isMobile?14:11,fontWeight:isT?700:400,color:isT?'#2563eb':isPast&&!isFutureWeek?'#d1d5db':'#94a3b8'}}>
+                  {dayNum}{isT&&<span style={{fontSize:isMobile?11:8,fontWeight:500,color:'#93c5fd',marginLeft:2}}>{MONTH_NAMES[dayMonth].slice(0,3).toUpperCase()}</span>}
                 </span>
+                {tasks.length>0&&<span style={{fontSize:isMobile?12:9,fontWeight:400,color:'#cbd5e1',marginLeft:'auto'}}>({tasks.length})</span>}
               </div>
               <div
                 onDragOver={e=>{e.preventDefault();sDragOver(d);}}
                 onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))sDragOver(null);}}
                 onDrop={e=>handleDrop(e,d)}
-                style={{flex:1,borderRadius:8,padding:'5px 5px',overflowY:'auto',
+                style={{flex:1,borderRadius:8,padding:isMobile?'8px 8px':'5px 5px',overflowY:'auto',
                   background:isOver?'#f0f9ff':isT?'#eff6ff':isFutureWeek?'#fafffe':'#f8fafc',
                   border:`1px solid ${isOver?'#93c5fd':isT?'#bfdbfe':isFutureWeek?'#d1fae5':'#edf0f3'}`,
-                  minHeight:90,transition:'background .08s,border-color .08s'}}>
+                  minHeight:isMobile?50:90,transition:'background .08s,border-color .08s'}}>
                 {tasks.map(t=>(
                   <WeekTaskCard key={t.id} t={t} day={d} dragTask={dragTask}
                     onDragStart={handleDragStart}
@@ -975,7 +973,7 @@ function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMo
                       placeholder="Nueva tarea..."
                       style={{width:'100%',fontSize:11,border:'none',borderBottom:'1px solid #bfdbfe',outline:'none',background:'transparent',color:'#1e293b',fontFamily:'inherit',padding:'2px 0'}}/>
                   :<button onClick={()=>sAddD(d)}
-                      style={{fontSize:11,color:'#d1d5db',border:'none',background:'transparent',cursor:'pointer',padding:'2px 3px',width:'100%',textAlign:'left',borderRadius:3}}>
+                      style={{fontSize:13,color:'#d1d5db',border:'none',background:'transparent',cursor:'pointer',padding:'4px 3px',width:'100%',textAlign:'left',borderRadius:3}}>
                       + añadir
                     </button>}
               </div>
@@ -1337,21 +1335,21 @@ function App(){
 
       {/* SIDEBAR — en móvil: barra de navegación inferior */}
       {isMobile?(
-        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:'white',borderTop:'1px solid #e8ecf0',display:'flex',justifyContent:'space-around',padding:'6px 0 max(6px,env(safe-area-inset-bottom))'}}>
+        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:'white',borderTop:'1px solid #e8ecf0',display:'flex',justifyContent:'space-around',padding:'10px 0 max(14px,env(safe-area-inset-bottom))'}}>
           {[...allCats.filter(c=>c.id==='home'||c.id==='meses'),...sidebarCats.slice(0,5)].map(c=>{
             const active=cat===c.id;
             return(
               <button key={c.id} onClick={()=>sCat(c.id)}
                 style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 8px',border:'none',background:'transparent',cursor:'pointer',color:active?'#2563eb':'#94a3b8',minWidth:44}}>
-                <Ico n={c.ico} s={18} c={active?'#2563eb':'#94a3b8'}/>
-                <span style={{fontSize:9,fontWeight:active?700:400,whiteSpace:'nowrap'}}>{c.label.slice(0,5)}</span>
+                <Ico n={c.ico} s={22} c={active?'#2563eb':'#94a3b8'}/>
+                <span style={{fontSize:11,fontWeight:active?700:400,whiteSpace:'nowrap'}}>{c.label.slice(0,5)}</span>
               </button>
             );
           })}
           <button onClick={()=>sPalette(true)}
             style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 8px',border:'none',background:'transparent',cursor:'pointer',color:'#2563eb',minWidth:44}}>
-            <Ico n="zap" s={18} c="#2563eb"/>
-            <span style={{fontSize:9,fontWeight:700}}>Nueva</span>
+            <Ico n="zap" s={22} c="#2563eb"/>
+            <span style={{fontSize:11,fontWeight:700}}>Nueva</span>
           </button>
         </div>
       ):(
@@ -1443,8 +1441,8 @@ function App(){
       {/* MAIN */}
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:isMobile?'visible':'hidden',minWidth:0,paddingBottom:isMobile?70:0}}>
         {/* HEADER */}
-        <div style={{height:isMobile?52:48,display:'flex',alignItems:'center',justifyContent:'space-between',padding:isMobile?'0 12px':'0 16px',background:'white',borderBottom:'1px solid #e8ecf0',flexShrink:0,gap:8,position:isMobile?'sticky':'static',top:0,zIndex:100}}>
-          <span style={{fontSize:isMobile?14:13,fontWeight:700,color:'#1e293b',flexShrink:0}}>{allCats.find(c=>c.id===cat)?.label||cat.toUpperCase()}</span>
+        <div style={{height:isMobile?60:48,display:'flex',alignItems:'center',justifyContent:'space-between',padding:isMobile?'0 12px':'0 16px',background:'white',borderBottom:'1px solid #e8ecf0',flexShrink:0,gap:8,position:isMobile?'sticky':'static',top:0,zIndex:100}}>
+          <span style={{fontSize:isMobile?18:13,fontWeight:700,color:'#1e293b',flexShrink:0}}>{allCats.find(c=>c.id===cat)?.label||cat.toUpperCase()}</span>
           <div style={{display:'flex',alignItems:'center',gap:isMobile?5:7,flex:1,justifyContent:'flex-end'}}>
             {/* Indicador Firebase sync */}
             {syncStatus==='connecting'&&(
@@ -1550,6 +1548,7 @@ function App(){
                 onDeleteBlock={deleteBlock}
                 weekOffset={weekOffset}
                 onOffsetChange={sWeekOffset}
+                isMobile={isMobile}
               />
 
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
