@@ -305,6 +305,26 @@ function PriorityDot({priority,onChange,hover,size=9}){
   );
 }
 
+/* ── DATE PICKER POPUP (selector de fecha exacta) ── */
+function DatePickerPopup({onPick,onClose}){
+  const ref=useRef();
+  const today=new Date().toISOString().split('T')[0];
+  useEffect(()=>{
+    if(ref.current)ref.current.focus();
+    const fn=e=>{if(ref.current&&!ref.current.contains(e.target))onClose();};
+    document.addEventListener('mousedown',fn);return()=>document.removeEventListener('mousedown',fn);
+  },[]);
+  return(
+    <div ref={ref} onClick={e=>e.stopPropagation()}
+      style={{position:'absolute',right:0,top:'calc(100% + 4px)',zIndex:500,background:'white',border:'1px solid #e2e8f0',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,.14)',padding:'10px 12px',minWidth:200}}>
+      <p style={{fontSize:9,color:'#94a3b8',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.07em'}}>Asignar fecha</p>
+      <input type="date" defaultValue={today} tabIndex={0}
+        onChange={e=>{if(e.target.value){onPick(e.target.value);onClose();}}}
+        style={{width:'100%',fontSize:13,border:'1px solid #e2e8f0',borderRadius:6,padding:'6px 8px',outline:'none',color:'#1e293b',fontFamily:'inherit',cursor:'pointer'}}/>
+    </div>
+  );
+}
+
 /* ── DAY PICKER POPUP (para mover a semana) ── */
 function DayPickerPopup({onPick,onClose}){
   const ref=useRef();
@@ -366,7 +386,7 @@ function BlockPickerPopup({allBlocks,blockNames,onPick,onClose,onDeleteBlock}){
 /* ── TASK ITEM ────────────────────── */
 function TaskItem({task,onPriority,onEdit,onDelete,onToday,onToVarios,onToWeek,onToBlock,allBlocks,blockNames,onDeleteBlock,compact}){
   const[h,sH]=useState(false);const[ed,sEd]=useState(false);const[draft,sDraft]=useState(task.text);
-  const[showDay,sShowDay]=useState(false);const[showBlk,sShowBlk]=useState(false);
+  const[showDate,sShowDate]=useState(false);const[showBlk,sShowBlk]=useState(false);
   const ref=useRef();
   useEffect(()=>{if(ed&&ref.current)ref.current.focus();},[ed]);
   const commit=()=>{if(draft.trim())onEdit(draft.trim());sEd(false);};
@@ -391,13 +411,13 @@ function TaskItem({task,onPriority,onEdit,onDelete,onToday,onToVarios,onToWeek,o
           {onToVarios&&<IBtn ico="inbox" onClick={onToVarios} title="→ HOY varios"/>}
           {onToWeek&&(
             <div style={{position:'relative'}}>
-              <IBtn ico="calday" onClick={()=>{sShowDay(p=>!p);sShowBlk(false);}} title="→ SEMANA" active={showDay}/>
-              {showDay&&<DayPickerPopup onPick={d=>onToWeek(d)} onClose={()=>sShowDay(false)}/>}
+              <IBtn ico="calday" onClick={()=>{sShowDate(p=>!p);sShowBlk(false);}} title="→ Fecha" active={showDate}/>
+              {showDate&&<DatePickerPopup onPick={dateStr=>onToWeek(dateStr)} onClose={()=>sShowDate(false)}/>}
             </div>
           )}
           {onToBlock&&allBlocks&&(
             <div style={{position:'relative'}}>
-              <IBtn ico="archive" onClick={()=>{sShowBlk(p=>!p);sShowDay(false);}} title="→ BLOQUE" active={showBlk}/>
+              <IBtn ico="archive" onClick={()=>{sShowBlk(p=>!p);sShowDate(false);}} title="→ BLOQUE" active={showBlk}/>
               {showBlk&&<BlockPickerPopup allBlocks={allBlocks} blockNames={blockNames||{}} onPick={bId=>onToBlock(bId)} onClose={()=>sShowBlk(false)} onDeleteBlock={onDeleteBlock}/>}
             </div>
           )}
@@ -562,7 +582,7 @@ function WorkTaskCard({t,slot,dragging,onDragStart,onDragEnd,onUpdWork,onMoveToV
               onMouseEnter={e=>e.currentTarget.style.color='#2563eb'} onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>
               <Ico n="calday" s={13}/>
             </button>
-            {showDayPick&&<DayPickerPopup onPick={d=>{onMoveToWeek&&onMoveToWeek(t,d,slot,'work');setShowDayPick(false);}} onClose={()=>setShowDayPick(false)}/>}
+            {showDayPick&&<DatePickerPopup onPick={dateStr=>{onMoveToWeek&&onMoveToWeek(t,dateStr,slot,'work');setShowDayPick(false);}} onClose={()=>setShowDayPick(false)}/>}
           </div>
           <div style={{position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();setShowBlkPick(p=>!p);setShowDayPick(false);}} title="→ BLOQUE"
@@ -613,7 +633,7 @@ function VariosTaskCard({t,dragging,onDragStart,onDragEnd,onUpdWork,onMoveToWeek
               onMouseEnter={e=>e.currentTarget.style.color='#2563eb'} onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>
               <Ico n="calday" s={13}/>
             </button>
-            {showDayPick&&<DayPickerPopup onPick={d=>{onMoveToWeek&&onMoveToWeek(t,d,null,'varios');setShowDayPick(false);}} onClose={()=>setShowDayPick(false)}/>}
+            {showDayPick&&<DatePickerPopup onPick={dateStr=>{onMoveToWeek&&onMoveToWeek(t,dateStr,null,'varios');setShowDayPick(false);}} onClose={()=>setShowDayPick(false)}/>}
           </div>
           <div style={{position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();setShowBlkPick(p=>!p);setShowDayPick(false);}} title="→ BLOQUE"
@@ -1250,17 +1270,29 @@ function App(){
 
   const moveToVariosFromBlock=task=>{sDayVarios(p=>[...p,{...task,id:uid(),mins:0}]);};
 
-  // Bloque → Semana (weekKey viene del WeekPanel activo)
-  const moveBlockToWeek=(task,blockId,day,weekKey)=>{
+  // Helper: a partir de dateStr "YYYY-MM-DD" devuelve {monthIdx, day}
+  const dateToMonthDay=(dateStr)=>{const d=new Date(dateStr+'T12:00:00');return{monthIdx:d.getMonth()+1,day:d.getDate()};};
+
+  // Bloque → Semana + Mes (weekKey viene del WeekPanel activo)
+  const moveBlockToWeek=(task,blockId,dayKey,weekKey,dateStr)=>{
     delTask(blockId,task.id);
-    sWeek(p=>({...p,[weekKey]:{...(p[weekKey]||{}),[day]:[...(p[weekKey]?.[day]||[]),{...task,id:uid()}]}}));
+    sWeek(p=>({...p,[weekKey]:{...(p[weekKey]||{}),[dayKey]:[...(p[weekKey]?.[dayKey]||[]),{...task,id:uid()}]}}));
+    if(dateStr){
+      const{monthIdx,day}=dateToMonthDay(dateStr);
+      sMonthAllData(p=>({...p,[monthIdx]:{...(p[monthIdx]||{}),[day]:(p[monthIdx]?.[day]?p[monthIdx][day]+' · ':'')+task.text}}));
+    }
   };
 
-  // HOY → Semana
-  const moveTodayToWeek=(task,day,slot,source,weekKey)=>{
+  // HOY → Semana + Mes
+  const moveTodayToWeek=(task,dateStr,slot,source)=>{
     if(source==='work') sDayWork(p=>({...p,[slot]:(p[slot]||[]).filter(t=>t.id!==task.id)}));
     else sDayVarios(p=>p.filter(t=>t.id!==task.id));
-    sWeek(p=>({...p,[weekKey]:{...(p[weekKey]||{}),[day]:[...(p[weekKey]?.[day]||[]),{...task,id:uid()}]}}));
+    const d=new Date(dateStr+'T12:00:00');
+    const weekKey=getWeekKey(getMondayOf(d));
+    const dayKey=WDAYS[((d.getDay()+6)%7)];
+    sWeek(p=>({...p,[weekKey]:{...(p[weekKey]||{}),[dayKey]:[...(p[weekKey]?.[dayKey]||[]),{...task,id:uid()}]}}));
+    const{monthIdx,day}=dateToMonthDay(dateStr);
+    sMonthAllData(p=>({...p,[monthIdx]:{...(p[monthIdx]||{}),[day]:(p[monthIdx]?.[day]?p[monthIdx][day]+' · ':'')+task.text}}));
   };
 
   // HOY → Bloque
@@ -1530,7 +1562,7 @@ function App(){
                 onAddVarios={addDayVarios}
                 onDeleteVarios={delDayVarios}
                 onUpdateVarios={updDayVarios}
-                onMoveToWeek={(task,day,slot,source)=>moveTodayToWeek(task,day,slot,source,getWeekKey(getMondayWithOffset(weekOffset)))}
+                onMoveToWeek={(task,dateStr,slot,source)=>moveTodayToWeek(task,dateStr,slot,source)}
                 onMoveToBlock={moveTodayToBlock}
                 allBlocks={pickerBlocks}
                 blockNames={allBlockNames}
@@ -1577,7 +1609,7 @@ function App(){
                   onDelete={id=>delTask(b.id,id)}
                   onToday={t=>{moveToTodayFromBlock(t);delTask(b.id,t.id);}}
                   onToVarios={t=>{moveToVariosFromBlock(t);delTask(b.id,t.id);}}
-                  onToWeek={(t,day)=>{const wk=getWeekKey(getMondayWithOffset(weekOffset));moveBlockToWeek(t,b.id,day,wk);}}
+                  onToWeek={(t,dateStr)=>{const wk=getWeekKey(getMondayWithOffset(weekOffset));const d=new Date(dateStr+'T12:00:00');const wkTarget=getWeekKey(getMondayOf(d));const dayKey=WDAYS[((d.getDay()+6)%7)];moveBlockToWeek(t,b.id,dayKey,wkTarget,dateStr);}}
                   onMoveBlock={moveBlock}
                   onRenameBlock={renameBlock}
                   onDeleteBlock={()=>deleteBlock(b.id)}
