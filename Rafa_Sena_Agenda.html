@@ -1277,6 +1277,42 @@ function App(){
     window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn);
   },[]);
 
+  const exportData=()=>{
+    const data={tasks,dayWork,dayVarios,week,monthAllData,monthAIdx,monthBIdx,customBlocks,blockNames,blockCats,customCats,collapsedBlocks,hiddenBlocks,blockOrderIds,catOrder,hiddenCats};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='agenda-datos.json';a.click();URL.revokeObjectURL(url);
+  };
+
+  const importData=(jsonStr)=>{
+    try{
+      const d=JSON.parse(jsonStr);
+      if(d.tasks)sTasks(d.tasks);
+      if(d.dayWork){
+        if(Array.isArray(d.dayWork)){
+          const newDw={};WORK_SLOTS.forEach(sl=>newDw[sl]=[]);
+          d.dayWork.forEach(t=>{const sl=t.slot||'9:00';if(!newDw[sl])newDw[sl]=[];newDw[sl].push(t);});
+          sDayWork(newDw);
+        }else{sDayWork(d.dayWork);}
+      }
+      if(d.dayVarios)sDayVarios(d.dayVarios);
+      if(d.week)sWeek(d.week);
+      if(d.monthAllData)sMonthAllData(d.monthAllData);
+      if(d.monthAIdx)sMonthAIdx(d.monthAIdx);
+      if(d.monthBIdx)sMonthBIdx(d.monthBIdx);
+      if(d.customBlocks)sCustomBlocks(d.customBlocks);
+      if(d.blockNames)sBlockNames(d.blockNames);
+      if(d.blockCats)sBlockCats(d.blockCats);
+      if(d.customCats)sCustomCats(d.customCats);
+      if(d.collapsedBlocks)sCollapsedBlocks(d.collapsedBlocks);
+      if(d.hiddenBlocks)sHiddenBlocks(d.hiddenBlocks);
+      if(d.blockOrderIds)sBlockOrderIds(d.blockOrderIds);
+      if(d.catOrder)sCatOrder(d.catOrder);
+      if(d.hiddenCats)sHiddenCats(d.hiddenCats);
+      alert('✅ Datos importados correctamente');
+    }catch(e){alert('❌ Error al importar: '+e.message);}
+  };
+
   const forceReloadFromFirebase=()=>{
     setSyncStatus('connecting');
     try{
@@ -1589,6 +1625,24 @@ function App(){
               style={{border:'none',background:'#2563eb',cursor:'pointer',color:'white',padding:'5px 12px',fontSize:12,borderRadius:6,flexShrink:0,fontWeight:700}}>
               ↺ Cargar
             </button>
+            {/* Exportar / Importar */}
+            <button onClick={exportData} title="Exportar datos como JSON"
+              style={{border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',padding:'4px 8px',fontSize:11,borderRadius:6,flexShrink:0}}
+              onMouseEnter={e=>e.currentTarget.style.background='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              ↓ JSON
+            </button>
+            <label title="Importar datos desde JSON"
+              style={{border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',padding:'4px 8px',fontSize:11,borderRadius:6,flexShrink:0,display:'flex',alignItems:'center'}}
+              onMouseEnter={e=>e.currentTarget.style.background='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              ↑ JSON
+              <input type="file" accept=".json" style={{display:'none'}} onChange={e=>{
+                const file=e.target.files[0];if(!file)return;
+                const reader=new FileReader();
+                reader.onload=ev=>importData(ev.target.result);
+                reader.readAsText(file);
+                e.target.value='';
+              }}/>
+            </label>
             {syncStatus==='saving'&&(
               <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#f59e0b',flexShrink:0}}>
                 <span style={{width:6,height:6,borderRadius:'50%',background:'#f59e0b',display:'inline-block',animation:'pulse 1s infinite'}}/>
