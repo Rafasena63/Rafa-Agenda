@@ -1309,6 +1309,11 @@ function App(){
       if(d.blockOrderIds)sBlockOrderIds(d.blockOrderIds);
       if(d.catOrder)sCatOrder(d.catOrder);
       if(d.hiddenCats)sHiddenCats(d.hiddenCats);
+      // Guardar directamente en Firebase
+      try{
+        firebase.database().ref('agenda').set(d);
+        localStorage.setItem(SK,JSON.stringify(d));
+      }catch(e){console.error(e);}
       alert('✅ Datos importados correctamente');
     }catch(e){alert('❌ Error al importar: '+e.message);}
   };
