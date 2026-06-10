@@ -1281,8 +1281,10 @@ function App(){
     setSyncStatus('connecting');
     fbdb.ref(FB_PATH).once('value').then(snap=>{
       const val=snap.val();
+      console.log('Firebase data:', val ? 'tiene datos' : 'vacío', val ? Object.keys(val) : '');
       if(val){
         const d=parseSavedData(JSON.stringify(val));
+        console.log('Parsed data tasks:', d?.tasks ? Object.keys(d.tasks).length + ' bloques' : 'no hay tasks');
         if(!d)return;
         if(d.tasks)sTasks(d.tasks);
         if(d.dayWork)sDayWork(d.dayWork);
