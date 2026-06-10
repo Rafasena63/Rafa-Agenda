@@ -1287,34 +1287,11 @@ function App(){
   const importData=(jsonStr)=>{
     try{
       const d=JSON.parse(jsonStr);
-      if(d.tasks)sTasks(d.tasks);
-      if(d.dayWork){
-        if(Array.isArray(d.dayWork)){
-          const newDw={};WORK_SLOTS.forEach(sl=>newDw[sl]=[]);
-          d.dayWork.forEach(t=>{const sl=t.slot||'9:00';if(!newDw[sl])newDw[sl]=[];newDw[sl].push(t);});
-          sDayWork(newDw);
-        }else{sDayWork(d.dayWork);}
-      }
-      if(d.dayVarios)sDayVarios(d.dayVarios);
-      if(d.week)sWeek(d.week);
-      if(d.monthAllData)sMonthAllData(d.monthAllData);
-      if(d.monthAIdx)sMonthAIdx(d.monthAIdx);
-      if(d.monthBIdx)sMonthBIdx(d.monthBIdx);
-      if(d.customBlocks)sCustomBlocks(d.customBlocks);
-      if(d.blockNames)sBlockNames(d.blockNames);
-      if(d.blockCats)sBlockCats(d.blockCats);
-      if(d.customCats)sCustomCats(d.customCats);
-      if(d.collapsedBlocks)sCollapsedBlocks(d.collapsedBlocks);
-      if(d.hiddenBlocks)sHiddenBlocks(d.hiddenBlocks);
-      if(d.blockOrderIds)sBlockOrderIds(d.blockOrderIds);
-      if(d.catOrder)sCatOrder(d.catOrder);
-      if(d.hiddenCats)sHiddenCats(d.hiddenCats);
-      // Guardar directamente en Firebase
-      try{
-        firebase.database().ref('agenda').set(d);
-        localStorage.setItem(SK,JSON.stringify(d));
-      }catch(e){console.error(e);}
-      alert('✅ Datos importados correctamente');
+      // Guardar en localStorage y Firebase, luego recargar
+      localStorage.setItem(SK,JSON.stringify(d));
+      try{firebase.database().ref('agenda').set(d);}catch(e){console.error(e);}
+      alert('✅ Datos importados. La página se recargará.');
+      window.location.reload();
     }catch(e){alert('❌ Error al importar: '+e.message);}
   };
 
