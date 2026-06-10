@@ -1576,9 +1576,8 @@ function App(){
             )}
             {/* Botón recargar siempre visible */}
             <button onClick={forceReloadFromFirebase} title="Recargar datos de Firebase"
-              style={{border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',padding:'3px 8px',fontSize:12,borderRadius:6,flexShrink:0,fontWeight:600}}
-              onMouseEnter={e=>e.currentTarget.style.background='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              ↺
+              style={{border:'none',background:'#2563eb',cursor:'pointer',color:'white',padding:'5px 12px',fontSize:12,borderRadius:6,flexShrink:0,fontWeight:700}}>
+              ↺ Cargar
             </button>
             {syncStatus==='saving'&&(
               <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#f59e0b',flexShrink:0}}>
