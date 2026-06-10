@@ -1280,34 +1280,40 @@ function App(){
   const forceReloadFromFirebase=()=>{
     setSyncStatus('connecting');
     try{
-      const ref=firebase.database().ref('agenda');
-      ref.once('value').then(snap=>{
+      firebase.database().ref('agenda').once('value').then(snap=>{
         const val=snap.val();
         console.log('FB val keys:', val?Object.keys(val):'null');
         if(!val){setSyncStatus('error');return;}
-        const d=parseSavedData(JSON.stringify(val));
-        console.log('Parsed OK:', !!d, 'tasks keys:', d?.tasks?Object.keys(d.tasks).length:'no tasks');
-        if(!d){setSyncStatus('error');return;}
-        if(d.tasks)sTasks(d.tasks);
-        if(d.dayWork)sDayWork(d.dayWork);
-        if(d.dayVarios)sDayVarios(d.dayVarios);
-        if(d.week)sWeek(d.week);
-        if(d.monthAllData)sMonthAllData(d.monthAllData);
-        if(d.monthAIdx)sMonthAIdx(d.monthAIdx);
-        if(d.monthBIdx)sMonthBIdx(d.monthBIdx);
-        if(d.customBlocks)sCustomBlocks(d.customBlocks);
-        if(d.blockNames)sBlockNames(d.blockNames);
-        if(d.blockCats)sBlockCats(d.blockCats);
-        if(d.customCats)sCustomCats(d.customCats);
-        if(d.collapsedBlocks)sCollapsedBlocks(d.collapsedBlocks);
-        if(d.hiddenBlocks)sHiddenBlocks(d.hiddenBlocks);
-        if(d.blockOrderIds)sBlockOrderIds(d.blockOrderIds);
-        if(d.catOrder)sCatOrder(d.catOrder);
-        if(d.hiddenCats)sHiddenCats(d.hiddenCats);
-        try{localStorage.setItem(SK,JSON.stringify(val));}catch{}
-        setSyncStatus('saved');
-      }).catch(e=>{console.error('FB error:',e);setSyncStatus('error');});
-    }catch(e){console.error('FB catch:',e);setSyncStatus('error');}
+        try{
+          if(val.tasks)sTasks(val.tasks);
+          if(val.dayWork){
+            // migrar dayWork si es array
+            if(Array.isArray(val.dayWork)){
+              const newDw={};WORK_SLOTS.forEach(sl=>newDw[sl]=[]);
+              val.dayWork.forEach(t=>{const sl=t.slot||'9:00';if(!newDw[sl])newDw[sl]=[];newDw[sl].push(t);});
+              sDayWork(newDw);
+            } else {sDayWork(val.dayWork);}
+          }
+          if(val.dayVarios)sDayVarios(val.dayVarios);
+          if(val.week)sWeek(val.week);
+          if(val.monthAllData)sMonthAllData(val.monthAllData);
+          if(val.monthAIdx)sMonthAIdx(val.monthAIdx);
+          if(val.monthBIdx)sMonthBIdx(val.monthBIdx);
+          if(val.customBlocks)sCustomBlocks(val.customBlocks);
+          if(val.blockNames)sBlockNames(val.blockNames);
+          if(val.blockCats)sBlockCats(val.blockCats);
+          if(val.customCats)sCustomCats(val.customCats);
+          if(val.collapsedBlocks)sCollapsedBlocks(val.collapsedBlocks);
+          if(val.hiddenBlocks)sHiddenBlocks(val.hiddenBlocks);
+          if(val.blockOrderIds)sBlockOrderIds(val.blockOrderIds);
+          if(val.catOrder)sCatOrder(val.catOrder);
+          if(val.hiddenCats)sHiddenCats(val.hiddenCats);
+          try{localStorage.setItem(SK,JSON.stringify(val));}catch{}
+          console.log('Datos aplicados OK');
+          setSyncStatus('saved');
+        }catch(e){console.error('Apply error:',e);setSyncStatus('error');}
+      }).catch(e=>{console.error('FB fetch error:',e);setSyncStatus('error');});
+    }catch(e){console.error('FB init error:',e);setSyncStatus('error');}
   };
 
   const connectGcal=()=>{
