@@ -235,6 +235,19 @@ function parseSavedData(raw){
 // Carga inicial desde localStorage (arranque rápido mientras llega Firebase)
 const load=()=>{
   try{
+    // Prioridad máxima: datos recién importados
+    const priority=localStorage.getItem('so-import-priority');
+    if(priority){
+      localStorage.removeItem('so-import-priority');// usar solo una vez
+      const d=parseSavedData(priority);
+      if(d){
+        // Subir a Firebase en segundo plano
+        setTimeout(()=>{
+          try{fbdb.ref(FB_PATH).set(JSON.parse(priority));}catch(e){console.error(e);}
+        },2000);
+        return d;
+      }
+    }
     const r=localStorage.getItem(SK);if(r)return parseSavedData(r);
     const old=localStorage.getItem(SK_OLD);if(old)return parseSavedData(old);
     return null;
@@ -272,11 +285,12 @@ function subscribeFirebase(onData){
   try{
     fbdb.ref(FB_PATH).on('value',snap=>{
       const val=snap.val();
+      // No sobrescribir si hay datos prioritarios pendientes
+      if(localStorage.getItem('so-import-priority'))return;
       if(val){
         try{localStorage.setItem(SK,JSON.stringify(val));}catch{}
         onData(val);
       }
-      // Si Firebase está vacío NO borramos nada — mantenemos los datos locales
       window.dispatchEvent(new CustomEvent('fb-status',{detail:'connected'}));
     },err=>{
       console.error('Firebase subscribe error',err);
@@ -1287,9 +1301,9 @@ function App(){
   const importData=(jsonStr)=>{
     try{
       const d=JSON.parse(jsonStr);
-      // Guardar en localStorage y Firebase, luego recargar
+      // Guardar con clave prioritaria — se carga ANTES que Firebase
+      localStorage.setItem('so-import-priority',JSON.stringify(d));
       localStorage.setItem(SK,JSON.stringify(d));
-      try{firebase.database().ref('agenda').set(d);}catch(e){console.error(e);}
       alert('✅ Datos importados. La página se recargará.');
       window.location.reload();
     }catch(e){alert('❌ Error al importar: '+e.message);}
