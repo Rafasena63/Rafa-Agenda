@@ -1279,13 +1279,14 @@ function App(){
 
   const forceReloadFromFirebase=()=>{
     setSyncStatus('connecting');
-    fbdb.ref(FB_PATH).once('value').then(snap=>{
-      const val=snap.val();
-      console.log('Firebase data:', val ? 'tiene datos' : 'vacío', val ? Object.keys(val) : '');
-      if(val){
+    try{
+      const ref=firebase.database().ref('agenda');
+      ref.once('value').then(snap=>{
+        const val=snap.val();
+        console.log('FB val keys:', val?Object.keys(val):'null');
+        if(!val){setSyncStatus('error');return;}
         const d=parseSavedData(JSON.stringify(val));
-        console.log('Parsed data tasks:', d?.tasks ? Object.keys(d.tasks).length + ' bloques' : 'no hay tasks');
-        if(!d)return;
+        if(!d){setSyncStatus('error');return;}
         if(d.tasks)sTasks(d.tasks);
         if(d.dayWork)sDayWork(d.dayWork);
         if(d.dayVarios)sDayVarios(d.dayVarios);
@@ -1304,8 +1305,8 @@ function App(){
         if(d.hiddenCats)sHiddenCats(d.hiddenCats);
         try{localStorage.setItem(SK,JSON.stringify(val));}catch{}
         setSyncStatus('saved');
-      }
-    }).catch(()=>setSyncStatus('error'));
+      }).catch(e=>{console.error('FB error:',e);setSyncStatus('error');});
+    }catch(e){console.error('FB catch:',e);setSyncStatus('error');}
   };
 
   const connectGcal=()=>{
