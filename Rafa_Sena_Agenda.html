@@ -1572,13 +1572,14 @@ function App(){
               <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#22c55e',flexShrink:0}}>
                 <span style={{width:6,height:6,borderRadius:'50%',background:'#22c55e',display:'inline-block'}}/>
                 {!isMobile&&'Sincronizado'}
-                <button onClick={forceReloadFromFirebase} title="Recargar datos de Firebase"
-                  style={{border:'none',background:'transparent',cursor:'pointer',color:'#94a3b8',padding:'0 2px',fontSize:10,display:'flex',alignItems:'center'}}
-                  onMouseEnter={e=>e.currentTarget.style.color='#2563eb'} onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>
-                  ↺
-                </button>
               </span>
             )}
+            {/* Botón recargar siempre visible */}
+            <button onClick={forceReloadFromFirebase} title="Recargar datos de Firebase"
+              style={{border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',padding:'3px 8px',fontSize:12,borderRadius:6,flexShrink:0,fontWeight:600}}
+              onMouseEnter={e=>e.currentTarget.style.background='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              ↺
+            </button>
             {syncStatus==='saving'&&(
               <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#f59e0b',flexShrink:0}}>
                 <span style={{width:6,height:6,borderRadius:'50%',background:'#f59e0b',display:'inline-block',animation:'pulse 1s infinite'}}/>
