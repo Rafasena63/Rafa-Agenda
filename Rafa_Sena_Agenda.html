@@ -1286,6 +1286,7 @@ function App(){
         console.log('FB val keys:', val?Object.keys(val):'null');
         if(!val){setSyncStatus('error');return;}
         const d=parseSavedData(JSON.stringify(val));
+        console.log('Parsed OK:', !!d, 'tasks keys:', d?.tasks?Object.keys(d.tasks).length:'no tasks');
         if(!d){setSyncStatus('error');return;}
         if(d.tasks)sTasks(d.tasks);
         if(d.dayWork)sDayWork(d.dayWork);
