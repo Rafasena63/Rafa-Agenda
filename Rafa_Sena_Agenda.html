@@ -1301,11 +1301,11 @@ function App(){
   const importData=(jsonStr)=>{
     try{
       const d=JSON.parse(jsonStr);
-      // Guardar con clave prioritaria — se carga ANTES que Firebase
-      localStorage.setItem('so-import-priority',JSON.stringify(d));
       localStorage.setItem(SK,JSON.stringify(d));
-      alert('✅ Datos importados. La página se recargará.');
-      window.location.reload();
+      // Subir directamente a Firebase sin esperar al useEffect
+      save(d);
+      alert('✅ Datos importados y subiendo a Firebase. La página se recargará.');
+      setTimeout(()=>window.location.reload(),2000);
     }catch(e){alert('❌ Error al importar: '+e.message);}
   };
 
@@ -1346,6 +1346,17 @@ function App(){
         }catch(e){console.error('Apply error:',e);setSyncStatus('error');}
       }).catch(e=>{console.error('FB fetch error:',e);setSyncStatus('error');});
     }catch(e){console.error('FB init error:',e);setSyncStatus('error');}
+  };
+
+  const pushLocalToFirebase=()=>{
+    try{
+      const raw=localStorage.getItem(SK)||localStorage.getItem(SK_OLD);
+      if(!raw){alert('No hay datos locales para subir.');return;}
+      const d=JSON.parse(raw);
+      fbdb.ref(FB_PATH).set(d)
+        .then(()=>alert('✅ Datos subidos a Firebase correctamente. Ahora ábrelo en GitHub Pages.'))
+        .catch(e=>alert('❌ Error: '+e.message));
+    }catch(e){alert('❌ Error: '+e.message);}
   };
 
   const connectGcal=()=>{
@@ -1616,7 +1627,11 @@ function App(){
                 {!isMobile&&'Sincronizado'}
               </span>
             )}
-            {/* Botón recargar siempre visible */}
+            {/* Botón subir datos locales a Firebase */}
+            <button onClick={pushLocalToFirebase} title="Subir datos locales a Firebase"
+              style={{border:'none',background:'#16a34a',cursor:'pointer',color:'white',padding:'5px 10px',fontSize:11,borderRadius:6,flexShrink:0,fontWeight:700,whiteSpace:'nowrap'}}>
+              ↑ Firebase
+            </button>
             <button onClick={forceReloadFromFirebase} title="Recargar datos de Firebase"
               style={{border:'none',background:'#2563eb',cursor:'pointer',color:'white',padding:'5px 12px',fontSize:12,borderRadius:6,flexShrink:0,fontWeight:700}}>
               ↺ Cargar
