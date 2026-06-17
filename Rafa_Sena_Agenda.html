@@ -7,7 +7,7 @@
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<!-- Firebase — debe cargarse antes que cualquier otro script -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
@@ -22,48 +22,6 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const fbdb=firebase.database();
-</script>
-<!-- Google Identity + Calendar API -->
-<script src="https://accounts.google.com/gsi/client" async></script>
-<script>
-const GCAL_CLIENT_ID='605709109528-8e5271lvuuiusn3555bf67kqfqh36clc.apps.googleusercontent.com';
-const GCAL_SCOPE='https://www.googleapis.com/auth/calendar.readonly';
-let _gcalToken=null;
-
-function gcalLogin(callback){
-  const client=google.accounts.oauth2.initTokenClient({
-    client_id:GCAL_CLIENT_ID,
-    scope:GCAL_SCOPE,
-    callback:(resp)=>{
-      if(resp.access_token){_gcalToken=resp.access_token;if(callback)callback(resp.access_token);}
-    }
-  });
-  client.requestAccessToken();
-}
-
-async function gcalFetchEvents(token,monthsAhead=3){
-  const now=new Date();
-  const from=new Date(now.getFullYear(),now.getMonth()-1,1).toISOString();
-  const to=new Date(now.getFullYear(),now.getMonth()+monthsAhead+1,0).toISOString();
-  const url=`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${from}&timeMax=${to}&singleEvents=true&orderBy=startTime&maxResults=200`;
-  const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
-  if(!res.ok)return[];
-  const data=await res.json();
-  return data.items||[];
-}
-
-// Convierte eventos de Google Calendar a mapa {YYYY-MM-DD: [titulo,...]}
-function gcalEventsToMap(events){
-  const map={};
-  events.forEach(ev=>{
-    const dateStr=ev.start?.date||ev.start?.dateTime?.split('T')[0];
-    if(!dateStr)return;
-    const title=ev.summary||'(sin título)';
-    if(!map[dateStr])map[dateStr]=[];
-    map[dateStr].push(title);
-  });
-  return map;
-}
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -191,12 +149,454 @@ const BASE_CATS=[
   {id:'backlog', label:'BACKLOG',      ico:'archive'},
 ];
 
-const BASE_BLK=[];
+const BASE_BLK=[
+  {id:'varios-ya',       name:'Varios trabajo YA',           cat:'trabajo'},
+  {id:'varios-mayo',     name:'Varios trabajo MAYO',         cat:'trabajo'},
+  {id:'varios-adelante', name:'Varios trabajos más adelante',cat:'trabajo'},
+  {id:'varios-semana',   name:'Varios esta semana',          cat:'trabajo'},
+  {id:'gabriel',         name:'Gabriel',                     cat:'trabajo'},
+  {id:'giuliano',        name:'Giuliano',                    cat:'trabajo'},
+  {id:'mondial',         name:'Mondial',                     cat:'trabajo'},
+  {id:'nicola',          name:'Nicola',                      cat:'trabajo'},
+  {id:'restauradora',    name:'Restauradora',                cat:'trabajo'},
+  {id:'mapas',           name:'Mapas',                       cat:'trabajo'},
+  {id:'massimo',         name:'MASSIMO',                     cat:'trabajo'},
+  {id:'alessandra',      name:'Alessandra',                  cat:'trabajo'},
+  {id:'alessandro',      name:'Alessandro',                  cat:'trabajo'},
+  {id:'janko',           name:'Janko',                       cat:'trabajo'},
+  {id:'llpp',            name:'LLPP',                        cat:'trabajo'},
+  {id:'vincenzo',        name:'Vincenzo',                    cat:'trabajo'},
+  {id:'formacion',       name:'Formación',                   cat:'trabajo'},
+  {id:'aop',             name:'AOP',                         cat:'mant'},
+  {id:'pepe',            name:'PEPE',                        cat:'mant'},
+  {id:'gordos',          name:'GORDOS',                      cat:'mant'},
+  {id:'collalto-scl',    name:'Collalto scl',                cat:'mant'},
+  {id:'collalto-s',      name:'Collalto s',                  cat:'mant'},
+  {id:'bodea',           name:'Bodea',                       cat:'mant'},
+  {id:'ventanas',        name:'Ventanas eléctricas',         cat:'mant'},
+  {id:'c215',            name:'215',                         cat:'mant'},
+  {id:'c216',            name:'216',                         cat:'mant'},
+  {id:'cotello',         name:'TEMAS COTELLO',               cat:'familia'},
+  {id:'romeria',         name:'romería',                     cat:'familia'},
+  {id:'jc',              name:'JC',                          cat:'familia'},
+  {id:'pensar',          name:'Pensar',                      cat:'personal'},
+  {id:'estresan',        name:'cosas me estresan',           cat:'personal'},
+  {id:'medico',          name:'Médico',                      cat:'personal'},
+  {id:'conv-inaki',      name:'conv D. Iñaki (27.5.23)',     cat:'personal'},
+  {id:'conv-juampi',     name:'conv Juampi (23.12.25)',      cat:'personal'},
+  {id:'cultural',        name:'CULTURAL',                    cat:'ideas'},
+  {id:'libros',          name:'LIBROS',                      cat:'ideas'},
+  {id:'admvt',           name:'AdmVT',                       cat:'admin'},
+  {id:'backlog-g',       name:'TAREAS GENERAL',              cat:'backlog'},
+];
 
 const mkt=(text,p)=>({id:uid(),text,priority:p||'blue',done:false,at:Date.now()});
 
 function seedTasks(){
   const t={};BASE_BLK.forEach(b=>t[b.id]=[]);
+  t['varios-ya']=[
+    mkt('casa Lorenzo?','blue'),
+    mkt('Mass: mostre porta 1 MR, pensar algo','blue'),
+    mkt('Nicola: luz sacristía Cripta','blue'),
+    mkt('buscar una pinza para la trituradora','blue'),
+    mkt('Devoluciones de Amazon, ya apposto?','blue'),
+    mkt('experiencias Audio Misa fineral','blue'),
+    mkt('intesa san paolo password','blue'),
+    mkt('Ir a CB a por 2 libros y baldosas','blue'),
+    mkt('pedir cita papeles D. Joaquín?','blue'),
+    mkt('Ver arreglos pendientes habitación D. Fer','blue'),
+    mkt('Pede, terminar y los vinilos de Mapas?','blue'),
+    mkt('Comprar billete ca?','blue'),
+    mkt('renovar DNI pasaporte: asegurar tamaño fotografías','blue'),
+    mkt('imanes ptas GPH, colocados?','blue'),
+    mkt('Firma contrato ENEL','blue'),
+    mkt('preventivos pasillos!','blue'),
+    mkt('responder Gianni albaneses','blue'),
+    mkt('responder propueta andrewWorld','blue'),
+    mkt('ptas baño, decir a Del Biondo','blue'),
+    mkt('Calcular precio pasillos VV','blue'),
+    mkt('comprar algo para Rita, bombones o flores?','blue'),
+    mkt('responder Pede ok jueves, pero yo no estaré','blue'),
+    mkt('nombrar luca cooperatore el día 1, confirmar con Alfredo','blue'),
+    mkt('quedar con Lex para aprender a organizarme','blue'),
+    mkt('pedirle ayuda a Gabriel para hacer el flujo','blue'),
+    mkt('buscar fotos más vídeos Jcotelo','blue'),
+    mkt('hiedra leoni, me encargo?','blue'),
+    mkt('tenemos colchón para D. Fer?','blue'),
+    mkt('cosas que hablé con Janko','blue'),
+    mkt('actualizar los relojes de la casa','blue'),
+    mkt('análisis Massimo (Patxi)','blue'),
+    mkt('Andrés, quedamos con el de TIM?','blue'),
+    mkt('Arreglar lo de las macetas del balcón scg','blue'),
+    mkt('atento tareas de Muralto antes de que lleguen ellas… pegatina un piso, etc.','blue'),
+    mkt('baldosas Smiguel comprobar','blue'),
+    mkt('buscar Virgen para Paola e impresora','blue'),
+    mkt('Coches ZTL, Pablo, siguientes…','blue'),
+    mkt('Cortar tubo baño Smiguel para que no se atasque','blue'),
+    mkt('enterarme ZTL, hablar con Gabriel','blue'),
+    mkt('escribir a Pede para terminar sus trabajos','blue'),
+    mkt('escribir a Toribio, estamos en ello','blue'),
+    mkt('humedades 5º Uffici','blue'),
+    mkt('investigaar timbres MR','blue'),
+    mkt('Lámpara 3 lentejas en el centro. Y que tengan pantallitas las bombillas actuales','blue'),
+    mkt('llamar al de la caldera de Collalto','blue'),
+    mkt('Llamar revisión caldaia Collalto','blue'),
+    mkt('macetas 215, la base','blue'),
+    mkt('MR má adelante: arreglar la salida a la terraza grande, las humedades, etc.','blue'),
+    mkt('MR más adelante, arreglar la puerta que da a la terraza del 5º MR hacia Uffici','blue'),
+    mkt('orden despacho','blue'),
+    mkt('pedir alessandra el documento editable','blue'),
+    mkt('Podemos comprar un par de extintores para Collalto?','blue'),
+    mkt('revisar cables sueltos 1º Uffici','blue'),
+    mkt('sensor pasillo, cambiarlo por otro y comprar uno igual de scorta… cuando tengamos dinero+','blue'),
+    mkt('tengo que preparar el archivo de los locales para el geómetra','blue'),
+    mkt('tfno 247','blue'),
+    mkt('tfno 329','blue'),
+    mkt('Trabajo para el hijo de Paloma?','blue'),
+    mkt('Triturar papeles de AOP','blue'),
+    mkt('ver la terraza de Uffici, por las plantas y por las vistas','blue')
+  ];
+  t['varios-mayo']=[
+    mkt('antena sottocucina','blue'),
+    mkt('Arona, parece que da problemas el telepass','blue'),
+    mkt('arreglar batería portátil','blue'),
+    mkt('as built alessandra, dedicar tiempo','blue'),
+    mkt('ascensor VV verano, avisar a la AdmVT, y al cl della vv','blue'),
+    mkt('ascensore Kone nuevo contrato','blue'),
+    mkt('Atento cierre contratos TIM','blue'),
+    mkt('baldas AOP en la UTA','blue'),
+    mkt('baño y ufficio cambiaremos la válvula, de Pepe','blue'),
+    mkt('bloquear habitaciones cdv-701 y 2','blue'),
+    mkt('brazo baño JC, otro?','blue'),
+    mkt('buscar baldosas baño Smiguel y decidir','blue'),
+    mkt('cables AOP','blue'),
+    mkt('cadenas para el Rav4','blue'),
+    mkt('cambiare lampadina D. Álvaro','blue'),
+    mkt('cancelar contrato TIM','blue'),
+    mkt('Comenzar a utilizar el Chat de Gmail y explicárselo a Nicola','blue'),
+    mkt('comprar barra sonido sogg. 2º cdv?','blue'),
+    mkt('Comprobar precio carta m2 sean 25€','blue'),
+    mkt('Conseguir info de Adrián','blue'),
+    mkt('cuartos limpieza admin, es fácil ponerles agua?','blue'),
+    mkt('D. Mariano, funcioann los fancoils','blue'),
+    mkt('Dar de baja dos telepass','blue'),
+    mkt('ENEL electricidad, reducir lo spread y enviar PEC','blue'),
+    mkt('enterarse si como colegio romano podemos tener ZTL','blue'),
+    mkt('entrar en el mail interno','blue'),
+    mkt('enviar PEC dar de baja contrato de electricidad dentro de 12 meses','blue'),
+    mkt('escribir experiencias panetones para el próximo año','blue'),
+    mkt('estudiar consumos agua','blue'),
+    mkt('estudiar dispositivos de humedad infiltraciones','blue'),
+    mkt('estudiar tema de infiltraciones, tengo una hoja con anotaciones','blue'),
+    mkt('gabriel por qué transferencia instantanea 20€','blue'),
+    mkt('Giuliano, pedirle tarjetas y datos fc','blue'),
+    mkt('gruop electrogeno, alguna alarma?','blue'),
+    mkt('hacer un documento con los colores de cada local','blue'),
+    mkt('imagen Virgen Paola','blue'),
+    mkt('Imprendo, pérdidas garaje','blue'),
+    mkt('impresora Paola','blue'),
+    mkt('Infiltraciones Anfore, Ospiti…','blue'),
+    mkt('Ir armando preventivo 216, y medidas preventivo pasillos','blue'),
+    mkt('Luz D. Iñaki en el 5º cdv','blue'),
+    mkt('mail de Archi','blue'),
+    mkt('Marcelo me dirá cómo dejamos los vinilos junto a Mapas','blue'),
+    mkt('MR: almacén 4º 3 tablas','blue'),
+    mkt('MR: Foro manilla scrivania','blue'),
+    mkt('MR: planchero cuadro VS','blue'),
+    mkt('Neon Aula Magna','blue'),
+    mkt('orden agendas viejas','blue'),
+    mkt('orden despacho','blue'),
+    mkt('orden entrada Archi, cuadro y libros','blue'),
+    mkt('orden papeles despacho','blue'),
+    mkt('peces?','blue'),
+    mkt('pedir al campus info sobre la referencia de la PEG','blue'),
+    mkt('pedir tarjetas para Jcasanova','blue'),
+    mkt('Pensar qué hacer con el peldaño cortile inglese','blue'),
+    mkt('pérdida agua sottocucina','blue'),
+    mkt('plan de baños, ventanas, suelos…','blue'),
+    mkt('porta OCS; sistemato?','blue'),
+    mkt('Posible pasaggio cavi wifi Pentecostés','blue'),
+    mkt('presupuesto papel pasillos','blue'),
+    mkt('pruebas luz esquina intercambiador, sin quitar de momento la lámpara. Tal vez poner un enchufe debajo','blue'),
+    mkt('puerta Ángel, se puede intercambiar por otra','blue'),
+    mkt('quedar tommasso carratelli','blue'),
+    mkt('rematar AOP','blue'),
+    mkt('responder a los de las mesas','blue'),
+    mkt('revisar cables vuotatoio 1º Uffic, han quedado decentes?','blue'),
+    mkt('scaldabagni, regular los circuitos','blue'),
+    mkt('sillas mapas, de momento las 8 de fuera, después las 6 intermedias, y en julio las otras 3','blue'),
+    mkt('suelos, solo josemaría este año','blue'),
+    mkt('Tal vez cambiar el porta-rotoli','blue'),
+    mkt('Tamaños colchones: Juampi, Marcelo, Julien, Julio','blue'),
+    mkt('tema infiltraciones terraza, estudiar planos','blue'),
+    mkt('tengo que guardar los impianti verticali de cdv en 5000, y pasarles a ellas los planos actualizados','blue'),
+    mkt('tfno D. Vicente. Avisa llamadas perdidas?','blue'),
+    mkt('tfno ellas, que aparezca el 604-5','blue'),
+    mkt('tfnos ellas, que no puedan llamar chicos','blue'),
+    mkt('varias cosas de cl Collalto','blue'),
+    mkt('ventana Parce','blue'),
+    mkt('ventana vistas D. José Andrés… avanzar','blue'),
+    mkt('ver banca 6º cdv','blue'),
+    mkt('ver el whatsapp de EC sobre los contactos de Andrew World y Vitra','blue'),
+    mkt('ver entrada SMP','blue')
+  ];
+  t['varios-adelante']=[
+    mkt('aclarar sensor trenino caldo, freddo','blue'),
+    mkt('actualizar la carpeta verde','blue'),
+    mkt('actualizar la lista de relojes, y la tabla… luces cortile Uffici, fuentes…','blue'),
+    mkt('Anotar cambios QE Cortile Vecchio, y quitar cables','blue'),
+    mkt('Anotar dónde se cierra el agua del comedor (tartarughe)o, poner ahí unas etiquetas…','blue'),
+    mkt('Antenas GSM, archivo, comedor y Cripta','blue'),
+    mkt('Ascensor Ospiti, novedad?','blue'),
+    mkt('atento presión Rr','blue'),
+    mkt('Atento ratas','blue'),
+    mkt('cable pared VV admin, D. Vicente','blue'),
+    mkt('centralita call 254','blue'),
+    mkt('coches ZTL','blue'),
+    mkt('Condensa splitter Padre','blue'),
+    mkt('creo que falta una griglia encima de SSAA, donde la brea','blue'),
+    mkt('Cuerda mosquitera 216','blue'),
+    mkt('Del Biondo, novedades 2 manillas?','blue'),
+    mkt('edir a Din los papeles de la barandilla para VF','blue'),
+    mkt('estamos pagando una multa de 41€ al mes central eléctrica','blue'),
+    mkt('Guaina (apagar la bomba) tartarughe','blue'),
+    mkt('hacer algo con las fotos del cantiere? Ordenarlas???','blue'),
+    mkt('hacer espacio en mi disco C','blue'),
+    mkt('Las alarmas!','blue'),
+    mkt('Llaves UVT','blue'),
+    mkt('los huecos para los teléfonos de los pasillos, qué hacemos?','blue'),
+    mkt('Luces donde Ángel','blue'),
+    mkt('Luz órgano Pentecostés','blue'),
+    mkt('monte argentario, aclarar','blue'),
+    mkt('Mosquitera D. Mariano','blue'),
+    mkt('orden llaves','blue'),
+    mkt('orden magazzino','blue'),
+    mkt('pintar local mezzanino?','blue'),
+    mkt('poner carteles fontana tartarughe degrassatore','blue'),
+    mkt('poner en marcha el pozzo','blue'),
+    mkt('Protección Collalto','blue'),
+    mkt('queda pendiente arrelgar tfno ascensor uff -1','blue'),
+    mkt('rehacer plano gnral Ra','blue'),
+    mkt('rehacer planos cocina y ver si el 6178 está actualizado','blue'),
+    mkt('revisar cdv-405 carcoma','blue'),
+    mkt('revisar tareas de Trello','blue'),
+    mkt('Revisar válvula agua caliente Cocina','blue'),
+    mkt('se vacía Rr MR?','blue'),
+    mkt('simplificar las experiencias y los archivos del audio de SMP','blue'),
+    mkt('Sobwoffer 4º cdv protección','blue'),
+    mkt('Stanza 404: display termostato graffiato','blue'),
+    mkt('tfno ascensores','blue'),
+    mkt('Ventana Pablo Bistu, el enganche','blue'),
+    mkt('ver Cruz SMP','blue'),
+    mkt('Virgen 5º Uffici, responder','blue'),
+    mkt('Visita tumba nP','blue'),
+    mkt('zona portería arreglar la pared','blue'),
+    mkt('somfy pittura','blue'),
+    mkt('peldaño cortile inglese','blue'),
+    mkt('motor UTA muralto','blue'),
+    mkt('Marmista: barcaccia e Porta Ospiti','blue'),
+    mkt('Extractor Archi','blue'),
+    mkt('Ruido sopra-archi','blue'),
+    mkt('Aislamiento ruido y scarico comedores ellas','blue'),
+    mkt('órgano SMP manutención','blue'),
+    mkt('Dinero de Fabio, cerrar el tema: 600 mine, 300 UVT, 200 Gigi y 300 chispa','blue'),
+    mkt('Rehacer mi DNI y pasaporte','blue'),
+    mkt('Nueva luz salón del consejo?','blue'),
+    mkt('Luz armario room Borja','blue'),
+    mkt('Luz oratorio del Padre con mando?','blue'),
+    mkt('Despacho Prelado, que funcione calefacción','blue')
+  ];
+  t['varios-semana']=[
+    mkt('Collalto, extintores','blue'),
+    mkt('Carta Calvin','blue')
+  ];
+  t['c215']=[
+    mkt('Una planta? Prueba con una viva?','blue'),
+    mkt('Ajustar altura riel y la bombillita amarilla','blue'),
+    mkt('terminar la puerta','blue'),
+    mkt('poner unas macetas','blue')
+  ];
+  t['aop']=[
+    mkt('comprar otro conector para el portátil','blue'),
+    mkt('colgar las estanterías','blue')
+  ];
+  t['pepe']=[
+    mkt('pensar si renovar las llaves de comunicación','blue'),
+    mkt('alfombra escalera, quién puede coserlo?','blue'),
+    mkt('decidir: un baño o dos en verano?','blue'),
+    mkt('Coche todavía nada','blue'),
+    mkt('Ir vaciando almacén MR','blue'),
+    mkt('Pasillo papel, creo que esta semana','blue'),
+    mkt('Panoplias, no hemos avanzado','blue'),
+    mkt('MR: puerta pasillo, comunicación, inteligente?','blue'),
+    mkt('salida 63, aprovechamos la puerta? Talk Janko','blue'),
+    mkt('ascensor cdv, qué hacemos?','blue')
+  ];
+  t['gordos']=[
+    mkt('Fuente Faunetti, pompa y sellar bien','blue'),
+    mkt('Control accesos, faltan varios','blue'),
+    mkt('nuovo contrato Kone','blue'),
+    mkt('ptas comuncicación SMP','blue'),
+    mkt('decoración 2 salitas MR','blue')
+  ];
+  t['romeria']=[
+    mkt('Rocco','blue'),
+    mkt('Antonio','blue'),
+    mkt('Giulio?','blue'),
+    mkt('Baciucchi','blue'),
+    mkt('Nicola?','blue'),
+    mkt('Otros del circ coop?','blue')
+  ];
+  t['pensar']=[
+    mkt('Libro Martija','blue'),
+    mkt('Notas ellas','blue'),
+    mkt('El hijo pródigo','blue')
+  ];
+  t['janko']=[
+    mkt('Calderas, qué sugieres?','blue'),
+    mkt('la bomba de la fuente de Faunetti','blue'),
+    mkt('cerraduras comunicación SMP','blue'),
+    mkt('hiedra leoni, me encargo?','blue'),
+    mkt('cables comedores, se lo podemos encargar a Tecnel o Giuliano?','blue')
+  ];
+  t['llpp']=[
+    mkt('la brea de vicolo degli archi','blue'),
+    mkt('lista de tareas mensiles','blue'),
+    mkt('puertas alcohol (la de Faunetti)','blue'),
+    mkt('poner etiquetas tubos Antonio Vicolo Archi, falta una','blue'),
+    mkt('Muebles','blue')
+  ];
+  t['alessandra']=[
+    mkt('Ra diseño general','blue'),
+    mkt('Incluir lavandería','blue'),
+    mkt('Lo de Tecnel actualizado','blue'),
+    mkt('Zona degrassatore','blue'),
+    mkt('Zona fornitori','blue')
+  ];
+  t['collalto-scl']=[
+    mkt('Aprender nuevos archivos','blue')
+  ];
+  t['vincenzo']=[
+    mkt('sogg. 5º cdv','blue'),
+    mkt('techo fondo pasillo scg rematar','blue'),
+    mkt('subida Archi?','blue'),
+    mkt('vestiboolo Camino','blue'),
+    mkt('techo Fr. Javier?','blue'),
+    mkt('grata S. Familia','blue'),
+    mkt('pta per Muralto (retoques)','blue'),
+    mkt('humedades 5º MR (preventivo), y tal vez una o dos habitaciones','blue'),
+    mkt('entrada BB75','blue')
+  ];
+  t['collalto-s']=[
+    mkt('Plan de ces del trimestre','blue'),
+    mkt('Lista de cumpleaños','blue'),
+    mkt('Sesión Historia Obra?','blue'),
+    mkt('conoce con inmensa compasión el sufrimiento de aquéllos que han elegido marcharse de casa, que han llorado mares de lágrimas al verse atrapados por la angustia y la agonía','blue')
+  ];
+  t['gabriel']=[mkt('Venta imprenta para decirle a Massimiliano','blue')];
+  t['admvt']=[mkt('Responder nota 38/25, quita vistas','blue')];
+  t['giuliano']=[mkt('comprar placas de los fancoils','blue')];
+  t['mondial']=[
+    mkt('2 ventanas','blue'),
+    mkt('finto piombo x2','blue'),
+    mkt('manutencione','blue')
+  ];
+  t['estresan']=[
+    mkt('llamadas largas Rita','blue'),
+    mkt('cenar Claudio','blue'),
+    mkt('Pede y su trabajo, no quiero sonreirle, me parece falso','blue'),
+    mkt('gente abre paquetes en la tienda','blue'),
+    mkt('llamadas JC porque alguno se ha olvidado','blue')
+  ];
+  t['bodea']=[
+    mkt('Canal orat ellas?','blue'),
+    mkt('Baño S. Miguel','blue'),
+    mkt('Impermeabilizar zona plantas jardín VV','blue'),
+    mkt('resina fuente','blue'),
+    mkt('salida Archi','blue'),
+    mkt('pta 1º MR y cornice','blue')
+  ];
+  t['massimo']=[
+    mkt('atento humedades del 5º Uffici… investigar un poco, tal vez con Massimo','blue'),
+    mkt('comprar sirga plantas leoni','blue'),
+    mkt('cuadros despacho SM, vergüenza','blue'),
+    mkt('falta algún cabecero?','blue'),
+    mkt('Fuente tartarughe, y no quitar de la lista si no está terminado','blue'),
+    mkt('habitación delante buru agua caliente','blue'),
+    mkt('humedades chicas 3 zonas: galle anfore, bajada pasillo portería y debajo barcaccia','blue'),
+    mkt('visto algo más radiadores Pepe baño y ufficio?','blue')
+  ];
+  t['nicola']=[
+    mkt('soldar peldaño ese','blue'),
+    mkt('Luz D. Iñaki en el 5º cdv','blue'),
+    mkt('dar de baja 2 telepass','blue'),
+    mkt('enterarse si como colegio romano podemos tener ZTL','blue'),
+    mkt('Tal vez cambiar el porta-rotoli','blue'),
+    mkt('pedir Mario tela alfombra escalera VV','blue')
+  ];
+  t['restauradora']=[
+    mkt('Cuadro 5º cdv-Uffici','blue'),
+    mkt('Letras friso Sagrada Familia?','blue')
+  ];
+  t['mapas']=[mkt('cambiar dos marcos','blue')];
+  t['c216']=[
+    mkt('Los apliques como los de los cuadros del 215','blue'),
+    mkt('Pedir empresas de cocina que fabriquen los nichos para el 216','blue')
+  ];
+  t['medico']=[
+    mkt('postura, silla trabajo','blue'),
+    mkt('peli, tv.','blue'),
+    mkt('conducir','blue'),
+    mkt('me vendría muy bien la natación, ganar en flexibilidad','blue'),
+    mkt('ningún problema pillar peso','blue')
+  ];
+  t['conv-inaki']=[
+    mkt('aprender a descansar con lo ordinario','blue'),
+    mkt('no pasa nada por ver una peli, solo o con otro','blue'),
+    mkt('conforntar con alguien las decisiones que me pesen','blue'),
+    mkt('a él le ayuda (y a mí) que le cuente los huertos que tengo, porque así puede preguntarme, se hace cargo, me siento acompañado…','blue')
+  ];
+  t['ventanas']=[mkt('https://www.accessoriperinfissi.com/','blue')];
+  t['conv-juampi']=[
+    mkt('No tengo ningún problema','blue'),
+    mkt('cuidar más el horario','blue'),
+    mkt('hacer uno de los planes de las navidades','blue'),
+    mkt('Desigo 47 min de diferencia','blue')
+  ];
+  t['jc']=[
+    mkt('1200A4664011196','blue'),
+    mkt('CTLJVR32M16Z131F','blue'),
+    mkt('tessera sanitaria','blue'),
+    mkt('8038000','blue'),
+    mkt('1200378722635.','blue')
+  ];
+  t['libros']=[
+    mkt('La última en el Cadalso (Gertrud von Le Fort)','blue'),
+    mkt('La felicidad conyugal (Tolstói)','blue'),
+    mkt('El corazón de las tinieblas (T. Sergio Pitol)','blue'),
+    mkt('De ratones y hombres (John Steinbeck)','blue'),
+    mkt('Veinticuatro horas en la vida de una mujer (Stefan Zweig)','blue'),
+    mkt('La invención de Morel (Adolfo Bioy Casares)','blue'),
+    mkt('El vizconde demediado (Italo Calvino)','blue'),
+    mkt('Imposible (Erri de Luca)','blue'),
+    mkt('El último encuentro (Sándor Márai)','blue'),
+    mkt('El hermano Jacob (George Eliot)','blue'),
+    mkt('Los papeles de Aspern (Henry James)','blue'),
+    mkt('Siete plantas (Dino Buzzati)','blue'),
+    mkt('Las pequeñas virtudes (Natalia Ginzburg)','blue'),
+    mkt('La gaviota (Sándor Márai)','blue')
+  ];
+  t['cotello']=[mkt('vitamina D','blue')];
+  t['cultural']=[
+    mkt('Frankestein?','blue'),
+    mkt('Superman?','blue')
+  ];
+  t['backlog-g']=[
+    mkt('16 mayo sábado tarde D. Joaquín','blue'),
+    mkt('rtm','blue'),
+    mkt('ordenaciones, cenar Calvin','blue'),
+    mkt('circ coop','blue')
+  ];
   return t;
 }
 function seedToday(){
@@ -206,11 +606,54 @@ function seedToday(){
 function seedWeek(){
   const mon=getMondayOf(new Date());
   const key=getWeekKey(mon);
-  return{[key]:{lun:[],mar:[],'mié':[],jue:[],vie:[],sáb:[],dom:[]}};
+  return{[key]:{
+    lun:[mkt('recoger cosas de TV SMP','blue')],
+    mar:[],
+    'mié':[],
+    jue:[
+      mkt('Tesis','blue'),
+      mkt('cambio despacho','blue'),
+      mkt('ver con Alessandro los pasajes','blue'),
+      mkt('balcones MR?','blue')
+    ],
+    vie:[
+      mkt('resp Pede','blue'),
+      mkt('15.30 Giuseppe Rizzo','blue'),
+      mkt('2h humedades','blue'),
+      mkt('RAL 7047 (el más parecido a bagno salette AR504 o R492…bagno salette)','blue'),
+      mkt('calcular con los datos de Nicola el preventivo para Fr. Javier y los pasillos','blue'),
+      mkt('facturas que tiene que contabilizar Niola','blue'),
+      mkt('quitar malas hierbas Fiume','blue'),
+      mkt('letras D. Fer, qué hago?','blue'),
+      mkt('Expe crt','blue'),
+      mkt('Móvil nuevo','blue'),
+      mkt('ayudar Miguel Ángel','blue')
+    ],
+    sáb:[
+      mkt('peli con D. Joaquín','blue'),
+      mkt('prep Misa de mañana, aire, micro, etc.','blue')
+    ],
+    dom:[
+      mkt('prep círculo','blue'),
+      mkt('Correr morning y rtm tarde','blue')
+    ],
+  }};
 }
-function seedDayVarios(){return[];}
+function seedDayVarios(){
+  return[{...mkt('pedir a alguien el ces del 8, el que no dé de cp','blue'),mins:0}];
+}
 function seedDayWork(){const s={};WORK_SLOTS.forEach(sl=>s[sl]=[]);return s;}
-function seedMonthData(){return{};}
+function seedMonthData(){
+  return{
+    5:{
+      16:'16 mayo sábado tarde D. Joaquín',
+      17:'rtm',
+      23:'ordenaciones, cenar Calvin',
+      25:'circ coop',
+    },
+    6:{},
+  };
+}
 
 /* ── STORAGE ──────────────────────── */
 const SK='so-personal-v12';const SK_OLD='so-personal-v11';
@@ -235,19 +678,6 @@ function parseSavedData(raw){
 // Carga inicial desde localStorage (arranque rápido mientras llega Firebase)
 const load=()=>{
   try{
-    // Prioridad máxima: datos recién importados
-    const priority=localStorage.getItem('so-import-priority');
-    if(priority){
-      localStorage.removeItem('so-import-priority');// usar solo una vez
-      const d=parseSavedData(priority);
-      if(d){
-        // Subir a Firebase en segundo plano
-        setTimeout(()=>{
-          try{fbdb.ref(FB_PATH).set(JSON.parse(priority));}catch(e){console.error(e);}
-        },2000);
-        return d;
-      }
-    }
     const r=localStorage.getItem(SK);if(r)return parseSavedData(r);
     const old=localStorage.getItem(SK_OLD);if(old)return parseSavedData(old);
     return null;
@@ -285,9 +715,8 @@ function subscribeFirebase(onData){
   try{
     fbdb.ref(FB_PATH).on('value',snap=>{
       const val=snap.val();
-      // No sobrescribir si hay datos prioritarios pendientes
-      if(localStorage.getItem('so-import-priority'))return;
       if(val){
+        // Guardar también en localStorage como caché
         try{localStorage.setItem(SK,JSON.stringify(val));}catch{}
         onData(val);
       }
@@ -341,40 +770,20 @@ function IBtn({ico,onClick,title,danger,active}){
   return(
     <button onClick={e=>{e.stopPropagation();onClick();}} title={title}
       onMouseEnter={()=>sH(true)} onMouseLeave={()=>sH(false)}
-      style={{width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6,border:'none',cursor:'pointer',padding:0,
+      style={{width:20,height:20,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:4,border:'none',cursor:'pointer',padding:0,
         background:active?'#eff6ff':h?(danger?'rgba(239,68,68,.1)':'rgba(15,23,42,.06)'):'transparent',
         color:active?'#2563eb':h?(danger?'#ef4444':'#475569'):'#94a3b8',transition:'all .1s'}}>
-      <Ico n={ico} s={14}/>
+      <Ico n={ico} s={11}/>
     </button>
   );
 }
 
-function PriorityDot({priority,onChange,hover,size=9}){
+function PriorityDot({priority,onChange,hover,size=8}){
   const px=PR[priority]||PR.blue;
   return(
     <button onClick={e=>{e.stopPropagation();onChange&&onChange(nextP(priority));}} title={`${px.lbl} → clic para cambiar`}
       style={{width:size,height:size,borderRadius:'50%',background:px.dot,border:'none',cursor:onChange?'pointer':'default',
         flexShrink:0,padding:0,boxShadow:hover?`0 0 0 3px ${px.ring}`:'none',transition:'box-shadow .15s'}}/>
-  );
-}
-
-/* ── DATE PICKER POPUP (selector de fecha exacta) ── */
-function DatePickerPopup({onPick,onClose}){
-  const ref=useRef();
-  const today=new Date().toISOString().split('T')[0];
-  useEffect(()=>{
-    if(ref.current)ref.current.focus();
-    const fn=e=>{if(ref.current&&!ref.current.contains(e.target))onClose();};
-    document.addEventListener('mousedown',fn);return()=>document.removeEventListener('mousedown',fn);
-  },[]);
-  return(
-    <div ref={ref} onClick={e=>e.stopPropagation()}
-      style={{position:'absolute',right:0,top:'calc(100% + 4px)',zIndex:500,background:'white',border:'1px solid #e2e8f0',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,.14)',padding:'10px 12px',minWidth:200}}>
-      <p style={{fontSize:9,color:'#94a3b8',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.07em'}}>Asignar fecha</p>
-      <input type="date" defaultValue={today} tabIndex={0}
-        onChange={e=>{if(e.target.value){onPick(e.target.value);onClose();}}}
-        style={{width:'100%',fontSize:13,border:'1px solid #e2e8f0',borderRadius:6,padding:'6px 8px',outline:'none',color:'#1e293b',fontFamily:'inherit',cursor:'pointer'}}/>
-    </div>
   );
 }
 
@@ -439,14 +848,14 @@ function BlockPickerPopup({allBlocks,blockNames,onPick,onClose,onDeleteBlock}){
 /* ── TASK ITEM ────────────────────── */
 function TaskItem({task,onPriority,onEdit,onDelete,onToday,onToVarios,onToWeek,onToBlock,allBlocks,blockNames,onDeleteBlock,compact}){
   const[h,sH]=useState(false);const[ed,sEd]=useState(false);const[draft,sDraft]=useState(task.text);
-  const[showDate,sShowDate]=useState(false);const[showBlk,sShowBlk]=useState(false);
+  const[showDay,sShowDay]=useState(false);const[showBlk,sShowBlk]=useState(false);
   const ref=useRef();
   useEffect(()=>{if(ed&&ref.current)ref.current.focus();},[ed]);
   const commit=()=>{if(draft.trim())onEdit(draft.trim());sEd(false);};
   const px=PR[task.priority]||PR.blue;
   return(
     <div onMouseEnter={()=>sH(true)} onMouseLeave={()=>{sH(false);}}
-      style={{display:'flex',alignItems:'center',gap:7,padding:compact?'6px 10px':'8px 12px',borderRadius:5,
+      style={{display:'flex',alignItems:'center',gap:7,padding:compact?'3px 8px':'5px 10px',borderRadius:5,
         background:h?'rgba(15,23,42,.025)':'transparent',borderLeft:`2px solid ${h?px.dot:'transparent'}`,
         transition:'all .1s',marginBottom:1,minWidth:0,position:'relative'}}>
       <PriorityDot priority={task.priority} onChange={onPriority} hover={h}/>
@@ -455,7 +864,7 @@ function TaskItem({task,onPriority,onEdit,onDelete,onToday,onToVarios,onToWeek,o
             onKeyDown={e=>{if(e.key==='Enter')commit();if(e.key==='Escape'){sEd(false);sDraft(task.text);}}}
             style={{flex:1,border:'none',outline:'none',background:'transparent',fontSize:compact?11:12,color:'#1e293b',fontFamily:'inherit'}}/>
         :<span onDoubleClick={()=>sEd(true)}
-            style={{flex:1,fontSize:compact?13:14,color:'#334155',lineHeight:'1.4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0,cursor:'default'}}>
+            style={{flex:1,fontSize:compact?11:12,color:'#334155',lineHeight:'1.4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0,cursor:'default'}}>
             {task.text}</span>}
       {h&&!ed&&(
         <div style={{display:'flex',gap:1,flexShrink:0,position:'relative'}}>
@@ -464,13 +873,13 @@ function TaskItem({task,onPriority,onEdit,onDelete,onToday,onToVarios,onToWeek,o
           {onToVarios&&<IBtn ico="inbox" onClick={onToVarios} title="→ HOY varios"/>}
           {onToWeek&&(
             <div style={{position:'relative'}}>
-              <IBtn ico="calday" onClick={()=>{sShowDate(p=>!p);sShowBlk(false);}} title="→ Fecha" active={showDate}/>
-              {showDate&&<DatePickerPopup onPick={dateStr=>onToWeek(dateStr)} onClose={()=>sShowDate(false)}/>}
+              <IBtn ico="calday" onClick={()=>{sShowDay(p=>!p);sShowBlk(false);}} title="→ SEMANA" active={showDay}/>
+              {showDay&&<DayPickerPopup onPick={d=>onToWeek(d)} onClose={()=>sShowDay(false)}/>}
             </div>
           )}
           {onToBlock&&allBlocks&&(
             <div style={{position:'relative'}}>
-              <IBtn ico="archive" onClick={()=>{sShowBlk(p=>!p);sShowDate(false);}} title="→ BLOQUE" active={showBlk}/>
+              <IBtn ico="archive" onClick={()=>{sShowBlk(p=>!p);sShowDay(false);}} title="→ BLOQUE" active={showBlk}/>
               {showBlk&&<BlockPickerPopup allBlocks={allBlocks} blockNames={blockNames||{}} onPick={bId=>onToBlock(bId)} onClose={()=>sShowBlk(false)} onDeleteBlock={onDeleteBlock}/>}
             </div>
           )}
@@ -506,16 +915,16 @@ function TaskBlock({block,blockName,blockCat,allCats,allBlocks,blockNames,tasks,
   return(
     <div style={{background:'#fff',border:'1px solid #e8ecf0',borderRadius:9,overflow:'visible',breakInside:'avoid',marginBottom:10,position:'relative'}}>
       <div onClick={()=>!editName&&onCollapse(!collapsed)}
-        style={{display:'flex',alignItems:'center',gap:6,padding:'12px 13px',cursor:'pointer',borderBottom:collapsed?'none':'1px solid #f4f6f8',borderRadius:collapsed?9:'9px 9px 0 0'}}>
+        style={{display:'flex',alignItems:'center',gap:6,padding:'9px 11px',cursor:'pointer',borderBottom:collapsed?'none':'1px solid #f4f6f8',borderRadius:collapsed?9:'9px 9px 0 0'}}>
         {editName
           ?<input ref={nameRef} value={nameDraft} onChange={e=>sNameDraft(e.target.value)}
               onBlur={commitName} onClick={e=>e.stopPropagation()}
               onKeyDown={e=>{if(e.key==='Enter')commitName();if(e.key==='Escape'){sEditName(false);sNameDraft(blockName);}}}
               style={{flex:1,border:'none',borderBottom:'1px solid #bfdbfe',outline:'none',fontSize:11,fontWeight:650,color:'#1e293b',background:'transparent',fontFamily:'inherit',padding:'0 0 1px'}}/>
           :<span onDoubleClick={e=>{e.stopPropagation();sEditName(true);sNameDraft(blockName);}} title="Doble clic para renombrar"
-              style={{flex:1,fontSize:13,fontWeight:650,color:'#1e293b',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              style={{flex:1,fontSize:11,fontWeight:650,color:'#1e293b',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {blockName}</span>}
-        {tasks.length>0&&<span style={{fontSize:12,color:'#94a3b8',flexShrink:0}}>{tasks.length}</span>}
+        {tasks.length>0&&<span style={{fontSize:10,color:'#94a3b8',flexShrink:0}}>{tasks.length}</span>}
         {redC>0&&<span style={{fontSize:9,fontWeight:700,background:'#fef2f2',color:'#ef4444',borderRadius:3,padding:'1px 5px',flexShrink:0}}>{redC}!</span>}
         <div style={{display:'flex',gap:2,alignItems:'center',flexShrink:0,marginLeft:'auto'}}>
           <IBtn ico="plus" onClick={()=>{sAdd(true);onCollapse(false);}} title="Añadir tarea"/>
@@ -616,12 +1025,12 @@ function WorkTaskCard({t,slot,dragging,onDragStart,onDragEnd,onUpdWork,onMoveToV
       onDragStart={e=>onDragStart(e,t.id,slot)}
       onDragEnd={onDragEnd}
       onMouseEnter={()=>setHov(true)} onMouseLeave={()=>{setHov(false);setShowDayPick(false);setShowBlkPick(false);}}
-      style={{display:'flex',alignItems:'center',gap:4,padding:'6px 8px',borderRadius:6,position:'relative',
+      style={{display:'flex',alignItems:'center',gap:4,padding:'2px 5px',borderRadius:4,position:'relative',
         background:'white',border:`1px solid ${PR[t.priority]?.ring||'#e2e8f0'}`,
         cursor:'grab',opacity:dragging?.id===t.id?0.35:1,boxShadow:'0 1px 2px rgba(0,0,0,.04)'}}>
       <span style={{color:'#d1d5db',display:'flex',flexShrink:0}}><Ico n="grip" s={8}/></span>
       <PriorityDot priority={t.priority} onChange={p=>onUpdWork(t.id,{priority:p},slot)} hover={false} size={6}/>
-      <span style={{fontSize:14,color:'#334155',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
+      <span style={{fontSize:11,color:'#334155',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
       {hov?(
         <div style={{display:'flex',gap:2,flexShrink:0,alignItems:'center'}}>
           <button onClick={e=>{e.stopPropagation();onMoveToVarios(t.id,slot);}} title="→ VARIOS"
@@ -635,7 +1044,7 @@ function WorkTaskCard({t,slot,dragging,onDragStart,onDragEnd,onUpdWork,onMoveToV
               onMouseEnter={e=>e.currentTarget.style.color='#2563eb'} onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>
               <Ico n="calday" s={13}/>
             </button>
-            {showDayPick&&<DatePickerPopup onPick={dateStr=>{onMoveToWeek&&onMoveToWeek(t,dateStr,slot,'work');setShowDayPick(false);}} onClose={()=>setShowDayPick(false)}/>}
+            {showDayPick&&<DayPickerPopup onPick={d=>{onMoveToWeek&&onMoveToWeek(t,d,slot,'work');setShowDayPick(false);}} onClose={()=>setShowDayPick(false)}/>}
           </div>
           <div style={{position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();setShowBlkPick(p=>!p);setShowDayPick(false);}} title="→ BLOQUE"
@@ -672,12 +1081,12 @@ function VariosTaskCard({t,dragging,onDragStart,onDragEnd,onUpdWork,onMoveToWeek
       onDragStart={e=>onDragStart(e,t.id)}
       onDragEnd={onDragEnd}
       onMouseEnter={()=>setHov(true)} onMouseLeave={()=>{setHov(false);setShowDayPick(false);setShowBlkPick(false);}}
-      style={{display:'flex',alignItems:'center',gap:5,padding:'8px 10px',borderRadius:6,marginBottom:4,position:'relative',
+      style={{display:'flex',alignItems:'center',gap:5,padding:'4px 7px',borderRadius:5,marginBottom:3,position:'relative',
         background:'white',border:`1px solid ${PR[t.priority]?.ring||'#e2e8f0'}`,
         cursor:'grab',opacity:dragging?.id===t.id?0.35:1,boxShadow:'0 1px 2px rgba(0,0,0,.04)'}}>
       <span style={{color:'#d1d5db',display:'flex',flexShrink:0}}><Ico n="grip" s={9}/></span>
       <PriorityDot priority={t.priority} onChange={p=>onUpdWork(t.id,{priority:p})} hover={false} size={7}/>
-      <span style={{fontSize:14,color:'#334155',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
+      <span style={{fontSize:11,color:'#334155',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
       {hov?(
         <div style={{display:'flex',gap:2,flexShrink:0,alignItems:'center'}}>
           <div style={{position:'relative'}}>
@@ -686,7 +1095,7 @@ function VariosTaskCard({t,dragging,onDragStart,onDragEnd,onUpdWork,onMoveToWeek
               onMouseEnter={e=>e.currentTarget.style.color='#2563eb'} onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>
               <Ico n="calday" s={13}/>
             </button>
-            {showDayPick&&<DatePickerPopup onPick={dateStr=>{onMoveToWeek&&onMoveToWeek(t,dateStr,null,'varios');setShowDayPick(false);}} onClose={()=>setShowDayPick(false)}/>}
+            {showDayPick&&<DayPickerPopup onPick={d=>{onMoveToWeek&&onMoveToWeek(t,d,null,'varios');setShowDayPick(false);}} onClose={()=>setShowDayPick(false)}/>}
           </div>
           <div style={{position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();setShowBlkPick(p=>!p);setShowDayPick(false);}} title="→ BLOQUE"
@@ -728,7 +1137,7 @@ function WeekTaskCard({t,day,dragTask,onDragStart,onDragEnd,onPriority,onDelete,
         boxShadow:'0 1px 2px rgba(0,0,0,.04)',transition:'opacity .1s'}}>
       <span style={{color:'#d1d5db',display:'flex',flexShrink:0,marginTop:3}}><Ico n="grip" s={9}/></span>
       <PriorityDot priority={t.priority} onChange={p=>onPriority(day,t.id,p)} hover={false} size={7}/>
-      <span style={{fontSize:13,color:'#334155',lineHeight:'1.6',flex:1,wordBreak:'break-word'}}>{t.text}</span>
+      <span style={{fontSize:11,color:'#334155',lineHeight:'1.5',flex:1,wordBreak:'break-word'}}>{t.text}</span>
       <div style={{display:'flex',gap:2,flexShrink:0,marginTop:2,alignItems:'center'}}>
         {hov&&onMoveToToday&&(
           <button onClick={e=>{e.stopPropagation();onMoveToToday(t,day);}} title="→ HOY trabajo"
@@ -818,7 +1227,7 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px 8px',borderBottom:'1px solid #f1f5f9',flexShrink:0}}>
         <span style={{fontSize:10,fontWeight:750,color:'#1e293b',letterSpacing:'0.1em'}}>HOY</span>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontSize:11,color:'#94a3b8'}}>{new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}</span>
+          <span style={{fontSize:9,color:'#94a3b8'}}>{new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}</span>
           {!isMobile&&<span style={{fontSize:9,color:'#d1d5db'}}>arrastra entre slots y listas</span>}
         </div>
       </div>
@@ -853,7 +1262,7 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
                   {/* Etiqueta hora */}
                   <div style={{width:40,flexShrink:0,padding:'5px 6px 0 10px',textAlign:'right'}}>
                     <span style={{
-                      fontSize:isNoche?11:isHour?13:11,
+                      fontSize:isNoche?9:isHour?10:9,
                       fontWeight:isNow?700:isHour?500:400,
                       color:isNow?'#d97706':isNoche?'#94a3b8':isPastSlot?'#e2e8f0':isHour?'#64748b':'#cbd5e1',
                       letterSpacing:isNoche?'0.04em':'0',
@@ -885,7 +1294,7 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
                           placeholder="Nueva tarea..."
                           style={{fontSize:11,border:'none',borderBottom:'1px solid #bfdbfe',outline:'none',background:'transparent',color:'#1e293b',fontFamily:'inherit',padding:'1px 0',width:'100%'}}/>
                       :<button onClick={()=>sAddingSlot(slot)}
-                          style={{fontSize:13,color:'transparent',border:'none',background:'transparent',cursor:'pointer',padding:'1px 0',textAlign:'left',width:'100%',borderRadius:2}}
+                          style={{fontSize:10,color:'transparent',border:'none',background:'transparent',cursor:'pointer',padding:'1px 0',textAlign:'left',width:'100%',borderRadius:2}}
                           onMouseEnter={e=>e.currentTarget.style.color='#94a3b8'} onMouseLeave={e=>e.currentTarget.style.color='transparent'}>
                           + añadir
                         </button>}
@@ -940,7 +1349,7 @@ function TodayPanel({work,dayVarios,onAddWork,onDelWork,onUpdWork,onMoveToVarios
   );
 }
 
-function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMoveToVarios,onMoveToBlock,allBlocks,blockNames,onDeleteBlock,weekOffset,onOffsetChange,isMobile,gcalEvents}){
+function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMoveToVarios,onMoveToBlock,allBlocks,blockNames,onDeleteBlock,weekOffset,onOffsetChange}){
   const[addD,sAddD]=useState(null);const[nt,sNt]=useState('');
   const[dragTask,sDragTask]=useState(null);const[dragOver,sDragOver]=useState(null);
   const ref=useRef();
@@ -1000,41 +1409,33 @@ function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMo
           <span style={{fontSize:9,color:'#d1d5db'}}>arrastra entre días</span>
         </div>
       </div>
-      <div style={{display:'flex',flexDirection:isMobile?'column':'row',gap:isMobile?8:4}}>
+      <div style={{display:'flex',gap:4}}>
         {WDAYS.map(d=>{
           const tasks=weekData[d]||[];const isOver=dragOver===d;
           const dayDate=weekDates[d];const dayNum=dayDate.getDate();const dayMonth=dayDate.getMonth();const dayYear=dayDate.getFullYear();
           const isT=isCurrentWeek&&DOW[d]===todayDow;
           const isPast=dayYear<todayYear||(dayYear===todayYear&&(dayMonth<todayMonth||(dayMonth===todayMonth&&dayNum<todayNum)));
           const isFutureWeek=weekOffset>0;
-          // dateStr para gcal
-          const dateStr=`${dayYear}-${String(dayMonth+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-          const dayGcal=(gcalEvents&&gcalEvents[dateStr])||[];
           return(
             <div key={d} style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}>
-              <div style={{marginBottom:5,display:'flex',flexDirection:'row',alignItems:'center',gap:6}}>
-                <span style={{fontSize:isMobile?15:12,fontWeight:700,color:isT?'#2563eb':isPast&&!isFutureWeek?'#cbd5e1':'#64748b'}}>{WLB[d]}</span>
-                {isT&&<span style={{width:6,height:6,borderRadius:'50%',background:'#2563eb',display:'inline-block',flexShrink:0}}/>}
-                <span style={{fontSize:isMobile?14:11,fontWeight:isT?700:400,color:isT?'#2563eb':isPast&&!isFutureWeek?'#d1d5db':'#94a3b8'}}>
-                  {dayNum}{isT&&<span style={{fontSize:isMobile?11:8,fontWeight:500,color:'#93c5fd',marginLeft:2}}>{MONTH_NAMES[dayMonth].slice(0,3).toUpperCase()}</span>}
+              <div style={{marginBottom:5,display:'flex',flexDirection:'column',alignItems:'flex-start',gap:1}}>
+                <div style={{display:'flex',alignItems:'center',gap:3}}>
+                  <span style={{fontSize:10,fontWeight:700,color:isT?'#2563eb':isPast&&!isFutureWeek?'#cbd5e1':'#64748b'}}>{WLB[d]}</span>
+                  {isT&&<span style={{width:5,height:5,borderRadius:'50%',background:'#2563eb',display:'inline-block'}}/>}
+                  {tasks.length>0&&<span style={{fontSize:9,fontWeight:400,color:'#cbd5e1'}}>({tasks.length})</span>}
+                </div>
+                <span style={{fontSize:isT?13:11,fontWeight:isT?700:400,color:isT?'#2563eb':isPast&&!isFutureWeek?'#d1d5db':'#94a3b8',lineHeight:1}}>
+                  {dayNum}{isT&&<span style={{fontSize:8,fontWeight:500,color:'#93c5fd',marginLeft:2}}>{MONTH_NAMES[dayMonth].slice(0,3).toUpperCase()}</span>}
                 </span>
-                {tasks.length>0&&<span style={{fontSize:isMobile?12:9,fontWeight:400,color:'#cbd5e1',marginLeft:'auto'}}>({tasks.length})</span>}
               </div>
               <div
                 onDragOver={e=>{e.preventDefault();sDragOver(d);}}
                 onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))sDragOver(null);}}
                 onDrop={e=>handleDrop(e,d)}
-                style={{flex:1,borderRadius:8,padding:isMobile?'8px 8px':'5px 5px',overflowY:'auto',
+                style={{flex:1,borderRadius:8,padding:'5px 5px',overflowY:'auto',
                   background:isOver?'#f0f9ff':isT?'#eff6ff':isFutureWeek?'#fafffe':'#f8fafc',
                   border:`1px solid ${isOver?'#93c5fd':isT?'#bfdbfe':isFutureWeek?'#d1fae5':'#edf0f3'}`,
-                  minHeight:isMobile?50:90,transition:'background .08s,border-color .08s'}}>
-                {/* Eventos de Google Calendar */}
-                {dayGcal.map((ev,i)=>(
-                  <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'2px 4px',marginBottom:2,borderRadius:4,background:'#f0fdf4',border:'1px solid #bbf7d0'}}>
-                    <span style={{width:6,height:6,borderRadius:'50%',background:'#16a34a',flexShrink:0,display:'inline-block'}}/>
-                    <span style={{fontSize:10,color:'#15803d',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev}</span>
-                  </div>
-                ))}
+                  minHeight:90,transition:'background .08s,border-color .08s'}}>
                 {tasks.map(t=>(
                   <WeekTaskCard key={t.id} t={t} day={d} dragTask={dragTask}
                     onDragStart={handleDragStart}
@@ -1056,7 +1457,7 @@ function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMo
                       placeholder="Nueva tarea..."
                       style={{width:'100%',fontSize:11,border:'none',borderBottom:'1px solid #bfdbfe',outline:'none',background:'transparent',color:'#1e293b',fontFamily:'inherit',padding:'2px 0'}}/>
                   :<button onClick={()=>sAddD(d)}
-                      style={{fontSize:13,color:'#d1d5db',border:'none',background:'transparent',cursor:'pointer',padding:'4px 3px',width:'100%',textAlign:'left',borderRadius:3}}>
+                      style={{fontSize:11,color:'#d1d5db',border:'none',background:'transparent',cursor:'pointer',padding:'2px 3px',width:'100%',textAlign:'left',borderRadius:3}}>
                       + añadir
                     </button>}
               </div>
@@ -1069,7 +1470,7 @@ function WeekPanel({data,onAdd,onPriority,onDelete,onMoveTask,onMoveToToday,onMo
 }
 
 /* ── COLUMNA DE MES ──────────────── */
-function MonthColumn({allData,monthIdx,onChangeMonth,onSetText,gcalEvents}){
+function MonthColumn({allData,monthIdx,onChangeMonth,onSetText}){
   const[editing,setEditing]=useState(null);const[draft,setDraft]=useState('');const[showPicker,setShowPicker]=useState(false);
   const ref=useRef();const pickerRef=useRef();
   const today=new Date().getDate();const todayMonth=new Date().getMonth()+1;
@@ -1103,25 +1504,17 @@ function MonthColumn({allData,monthIdx,onChangeMonth,onSetText,gcalEvents}){
       <div style={{overflowY:'auto',flex:1,padding:'4px 6px'}}>
         {Array.from({length:days},(_,i)=>i+1).map(d=>{
           const text=data[d]||'';const isT=isCurrentMonth&&d===today;const isPast=isCurrentMonth&&d<today;
-          const dateStr=`${new Date().getFullYear()}-${String(monthIdx).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-          const dayGcal=(gcalEvents&&gcalEvents[dateStr])||[];
-          const hasCal=dayGcal.length>0;
           return(
             <div key={d} style={{display:'flex',alignItems:'flex-start',gap:6,padding:'2px 4px',borderRadius:4,marginBottom:1,
-              background:isT?'#eff6ff':'transparent',borderLeft:`2.5px solid ${isT?'#2563eb':hasCal?'#16a34a':text?'#e2e8f0':'transparent'}`}}>
+              background:isT?'#eff6ff':'transparent',borderLeft:`2.5px solid ${isT?'#2563eb':text?'#e2e8f0':'transparent'}`}}>
               <span style={{fontSize:9,minWidth:20,textAlign:'right',paddingTop:2,flexShrink:0,userSelect:'none',fontWeight:isT?700:400,color:isT?'#2563eb':isPast?'#d1d5db':'#9ca3af'}}>{d}</span>
-              <div style={{flex:1,minWidth:0}}>
-                {hasCal&&dayGcal.map((ev,i)=>(
-                  <div key={i} style={{fontSize:9,color:'#16a34a',lineHeight:'1.4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev}</div>
-                ))}
-                {editing===d
-                  ?<input ref={ref} value={draft} onChange={e=>setDraft(e.target.value)} onBlur={()=>commit(d)}
-                      onKeyDown={e=>{if(e.key==='Enter')commit(d);if(e.key==='Escape')setEditing(null);}}
-                      style={{width:'100%',fontSize:10,border:'none',borderBottom:'1px solid #bfdbfe',outline:'none',background:'transparent',color:'#1e293b',fontFamily:'inherit',padding:0}}/>
-                  :<span onDoubleClick={()=>{setEditing(d);setDraft(text);}}
-                      style={{fontSize:10,color:text?'#374151':'#e5e7eb',lineHeight:'1.4',cursor:'text',wordBreak:'break-word',minHeight:14,display:'block'}}>
-                      {text||'·'}</span>}
-              </div>
+              {editing===d
+                ?<input ref={ref} value={draft} onChange={e=>setDraft(e.target.value)} onBlur={()=>commit(d)}
+                    onKeyDown={e=>{if(e.key==='Enter')commit(d);if(e.key==='Escape')setEditing(null);}}
+                    style={{flex:1,fontSize:10,border:'none',borderBottom:'1px solid #bfdbfe',outline:'none',background:'transparent',color:'#1e293b',fontFamily:'inherit',padding:0}}/>
+                :<span onDoubleClick={()=>{setEditing(d);setDraft(text);}}
+                    style={{flex:1,fontSize:10,color:text?'#374151':'#e5e7eb',lineHeight:'1.4',cursor:'text',wordBreak:'break-word',minHeight:14}}>
+                    {text||'·'}</span>}
             </div>
           );
         })}
@@ -1131,11 +1524,11 @@ function MonthColumn({allData,monthIdx,onChangeMonth,onSetText,gcalEvents}){
   );
 }
 
-function MesesView({allData,monthAIdx,monthBIdx,onChangeA,onChangeB,onSetText,gcalEvents}){
+function MesesView({allData,monthAIdx,monthBIdx,onChangeA,onChangeB,onSetText}){
   return(
     <div style={{display:'flex',gap:14,height:'calc(100vh - 130px)'}}>
-      <MonthColumn allData={allData} monthIdx={monthAIdx} onChangeMonth={onChangeA} onSetText={onSetText} gcalEvents={gcalEvents}/>
-      <MonthColumn allData={allData} monthIdx={monthBIdx} onChangeMonth={onChangeB} onSetText={onSetText} gcalEvents={gcalEvents}/>
+      <MonthColumn allData={allData} monthIdx={monthAIdx} onChangeMonth={onChangeA} onSetText={onSetText}/>
+      <MonthColumn allData={allData} monthIdx={monthBIdx} onChangeMonth={onChangeB} onSetText={onSetText}/>
       <div style={{flex:1,display:'flex',flexDirection:'column',gap:10}}>
         <div style={{background:'white',border:'1px solid #e8ecf0',borderRadius:10,padding:'14px 16px'}}>
           <p style={{fontSize:11,fontWeight:650,color:'#334155',marginBottom:8}}>Columnas de mes</p>
@@ -1230,8 +1623,6 @@ function App(){
   const[hiddenCats,sHiddenCats]=useState(()=>saved?.hiddenCats||[]);
   const[weekOffset,sWeekOffset]=useState(0);
   const[addingCat,sAddingCat]=useState(false);const[newCatName,sNewCatName]=useState('');
-  const[gcalEvents,sGcalEvents]=useState({});// {YYYY-MM-DD:[titulo,...]}
-  const[gcalStatus,sGcalStatus]=useState('idle');// idle|loading|connected|error
   const[syncStatus,setSyncStatus]=useState('connecting'); // connecting|connected|saving|saved|error
   const[fbLoaded,setFbLoaded]=useState(false);
   const newCatRef=useRef();
@@ -1241,9 +1632,7 @@ function App(){
   // Suscribirse a Firebase para recibir cambios en tiempo real
   useEffect(()=>{
     subscribeFirebase(data=>{
-      // Solo ignorar si venimos de un save propio Y ya tenemos datos cargados
-      if(_ignoreNextSave.current&&fbLoaded){_ignoreNextSave.current=false;return;}
-      _ignoreNextSave.current=false;
+      if(_ignoreNextSave.current){_ignoreNextSave.current=false;return;}
       const d=parseSavedData(JSON.stringify(data));
       if(!d)return;
       // Actualizar todos los estados con los datos de Firebase
@@ -1282,6 +1671,16 @@ function App(){
     }
   };
 
+  const pushLocalToFirebase=()=>{
+    try{
+      const raw=localStorage.getItem(SK)||localStorage.getItem(SK_OLD);
+      if(!raw){alert('No hay datos locales para subir.');return;}
+      fbdb.ref(FB_PATH).set(JSON.parse(raw))
+        .then(()=>alert('✅ Datos subidos a Firebase. Ahora ábrelo en GitHub Pages.'))
+        .catch(e=>alert('❌ Error: '+e.message));
+    }catch(e){alert('❌ Error: '+e.message);}
+  };
+
   useEffect(()=>{
     _ignoreNextSave.current=true;
     save({tasks,dayWork,dayVarios,week,monthAllData,monthAIdx,monthBIdx,customBlocks,blockNames,blockCats,customCats,collapsedBlocks,hiddenBlocks,blockOrderIds,catOrder,hiddenCats});
@@ -1290,87 +1689,6 @@ function App(){
     const fn=e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();sPalette(p=>!p);}};
     window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn);
   },[]);
-
-  const exportData=()=>{
-    const data={tasks,dayWork,dayVarios,week,monthAllData,monthAIdx,monthBIdx,customBlocks,blockNames,blockCats,customCats,collapsedBlocks,hiddenBlocks,blockOrderIds,catOrder,hiddenCats};
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='agenda-datos.json';a.click();URL.revokeObjectURL(url);
-  };
-
-  const importData=(jsonStr)=>{
-    try{
-      const d=JSON.parse(jsonStr);
-      localStorage.setItem(SK,JSON.stringify(d));
-      // Subir directamente a Firebase sin esperar al useEffect
-      save(d);
-      alert('✅ Datos importados y subiendo a Firebase. La página se recargará.');
-      setTimeout(()=>window.location.reload(),2000);
-    }catch(e){alert('❌ Error al importar: '+e.message);}
-  };
-
-  const forceReloadFromFirebase=()=>{
-    setSyncStatus('connecting');
-    try{
-      firebase.database().ref('agenda').once('value').then(snap=>{
-        const val=snap.val();
-        console.log('FB val keys:', val?Object.keys(val):'null');
-        if(!val){setSyncStatus('error');return;}
-        try{
-          if(val.tasks)sTasks(val.tasks);
-          if(val.dayWork){
-            // migrar dayWork si es array
-            if(Array.isArray(val.dayWork)){
-              const newDw={};WORK_SLOTS.forEach(sl=>newDw[sl]=[]);
-              val.dayWork.forEach(t=>{const sl=t.slot||'9:00';if(!newDw[sl])newDw[sl]=[];newDw[sl].push(t);});
-              sDayWork(newDw);
-            } else {sDayWork(val.dayWork);}
-          }
-          if(val.dayVarios)sDayVarios(val.dayVarios);
-          if(val.week)sWeek(val.week);
-          if(val.monthAllData)sMonthAllData(val.monthAllData);
-          if(val.monthAIdx)sMonthAIdx(val.monthAIdx);
-          if(val.monthBIdx)sMonthBIdx(val.monthBIdx);
-          if(val.customBlocks)sCustomBlocks(val.customBlocks);
-          if(val.blockNames)sBlockNames(val.blockNames);
-          if(val.blockCats)sBlockCats(val.blockCats);
-          if(val.customCats)sCustomCats(val.customCats);
-          if(val.collapsedBlocks)sCollapsedBlocks(val.collapsedBlocks);
-          if(val.hiddenBlocks)sHiddenBlocks(val.hiddenBlocks);
-          if(val.blockOrderIds)sBlockOrderIds(val.blockOrderIds);
-          if(val.catOrder)sCatOrder(val.catOrder);
-          if(val.hiddenCats)sHiddenCats(val.hiddenCats);
-          try{localStorage.setItem(SK,JSON.stringify(val));}catch{}
-          console.log('Datos aplicados OK');
-          setSyncStatus('saved');
-        }catch(e){console.error('Apply error:',e);setSyncStatus('error');}
-      }).catch(e=>{console.error('FB fetch error:',e);setSyncStatus('error');});
-    }catch(e){console.error('FB init error:',e);setSyncStatus('error');}
-  };
-
-  const pushLocalToFirebase=()=>{
-    try{
-      const raw=localStorage.getItem(SK)||localStorage.getItem(SK_OLD);
-      if(!raw){alert('No hay datos locales para subir.');return;}
-      const d=JSON.parse(raw);
-      fbdb.ref(FB_PATH).set(d)
-        .then(()=>alert('✅ Datos subidos a Firebase correctamente. Ahora ábrelo en GitHub Pages.'))
-        .catch(e=>alert('❌ Error: '+e.message));
-    }catch(e){alert('❌ Error: '+e.message);}
-  };
-
-  const connectGcal=()=>{
-    sGcalStatus('loading');
-    try{
-      gcalLogin(async token=>{
-        try{
-          const events=await gcalFetchEvents(token);
-          sGcalEvents(gcalEventsToMap(events));
-          sGcalStatus('connected');
-        }catch(e){console.error(e);sGcalStatus('error');}
-      });
-    }catch(e){console.error(e);sGcalStatus('error');}
-  };
 
   const addTask=(bId,text,priority='blue')=>{const t=mkt(text,priority);sTasks(p=>({...p,[bId]:[...(p[bId]||[]),t]}));};
   const updTask=(bId,id,u)=>sTasks(p=>({...p,[bId]:(p[bId]||[]).map(t=>t.id===id?{...t,...u}:t)}));
@@ -1408,29 +1726,17 @@ function App(){
 
   const moveToVariosFromBlock=task=>{sDayVarios(p=>[...p,{...task,id:uid(),mins:0}]);};
 
-  // Helper: a partir de dateStr "YYYY-MM-DD" devuelve {monthIdx, day}
-  const dateToMonthDay=(dateStr)=>{const d=new Date(dateStr+'T12:00:00');return{monthIdx:d.getMonth()+1,day:d.getDate()};};
-
-  // Bloque → Semana + Mes (weekKey viene del WeekPanel activo)
-  const moveBlockToWeek=(task,blockId,dayKey,weekKey,dateStr)=>{
+  // Bloque → Semana (weekKey viene del WeekPanel activo)
+  const moveBlockToWeek=(task,blockId,day,weekKey)=>{
     delTask(blockId,task.id);
-    sWeek(p=>({...p,[weekKey]:{...(p[weekKey]||{}),[dayKey]:[...(p[weekKey]?.[dayKey]||[]),{...task,id:uid()}]}}));
-    if(dateStr){
-      const{monthIdx,day}=dateToMonthDay(dateStr);
-      sMonthAllData(p=>({...p,[monthIdx]:{...(p[monthIdx]||{}),[day]:(p[monthIdx]?.[day]?p[monthIdx][day]+' · ':'')+task.text}}));
-    }
+    sWeek(p=>({...p,[weekKey]:{...(p[weekKey]||{}),[day]:[...(p[weekKey]?.[day]||[]),{...task,id:uid()}]}}));
   };
 
-  // HOY → Semana + Mes
-  const moveTodayToWeek=(task,dateStr,slot,source)=>{
+  // HOY → Semana
+  const moveTodayToWeek=(task,day,slot,source,weekKey)=>{
     if(source==='work') sDayWork(p=>({...p,[slot]:(p[slot]||[]).filter(t=>t.id!==task.id)}));
     else sDayVarios(p=>p.filter(t=>t.id!==task.id));
-    const d=new Date(dateStr+'T12:00:00');
-    const weekKey=getWeekKey(getMondayOf(d));
-    const dayKey=WDAYS[((d.getDay()+6)%7)];
-    sWeek(p=>({...p,[weekKey]:{...(p[weekKey]||{}),[dayKey]:[...(p[weekKey]?.[dayKey]||[]),{...task,id:uid()}]}}));
-    const{monthIdx,day}=dateToMonthDay(dateStr);
-    sMonthAllData(p=>({...p,[monthIdx]:{...(p[monthIdx]||{}),[day]:(p[monthIdx]?.[day]?p[monthIdx][day]+' · ':'')+task.text}}));
+    sWeek(p=>({...p,[weekKey]:{...(p[weekKey]||{}),[day]:[...(p[weekKey]?.[day]||[]),{...task,id:uid()}]}}));
   };
 
   // HOY → Bloque
@@ -1505,21 +1811,21 @@ function App(){
 
       {/* SIDEBAR — en móvil: barra de navegación inferior */}
       {isMobile?(
-        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:'white',borderTop:'1px solid #e8ecf0',display:'flex',justifyContent:'space-around',padding:'10px 0 max(14px,env(safe-area-inset-bottom))'}}>
+        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:'white',borderTop:'1px solid #e8ecf0',display:'flex',justifyContent:'space-around',padding:'6px 0 max(6px,env(safe-area-inset-bottom))'}}>
           {[...allCats.filter(c=>c.id==='home'||c.id==='meses'),...sidebarCats.slice(0,5)].map(c=>{
             const active=cat===c.id;
             return(
               <button key={c.id} onClick={()=>sCat(c.id)}
                 style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 8px',border:'none',background:'transparent',cursor:'pointer',color:active?'#2563eb':'#94a3b8',minWidth:44}}>
-                <Ico n={c.ico} s={22} c={active?'#2563eb':'#94a3b8'}/>
-                <span style={{fontSize:11,fontWeight:active?700:400,whiteSpace:'nowrap'}}>{c.label.slice(0,5)}</span>
+                <Ico n={c.ico} s={18} c={active?'#2563eb':'#94a3b8'}/>
+                <span style={{fontSize:9,fontWeight:active?700:400,whiteSpace:'nowrap'}}>{c.label.slice(0,5)}</span>
               </button>
             );
           })}
           <button onClick={()=>sPalette(true)}
             style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 8px',border:'none',background:'transparent',cursor:'pointer',color:'#2563eb',minWidth:44}}>
-            <Ico n="zap" s={22} c="#2563eb"/>
-            <span style={{fontSize:11,fontWeight:700}}>Nueva</span>
+            <Ico n="zap" s={18} c="#2563eb"/>
+            <span style={{fontSize:9,fontWeight:700}}>Nueva</span>
           </button>
         </div>
       ):(
@@ -1611,8 +1917,8 @@ function App(){
       {/* MAIN */}
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:isMobile?'visible':'hidden',minWidth:0,paddingBottom:isMobile?70:0}}>
         {/* HEADER */}
-        <div style={{height:isMobile?60:48,display:'flex',alignItems:'center',justifyContent:'space-between',padding:isMobile?'0 12px':'0 16px',background:'white',borderBottom:'1px solid #e8ecf0',flexShrink:0,gap:8,position:isMobile?'sticky':'static',top:0,zIndex:100}}>
-          <span style={{fontSize:isMobile?18:13,fontWeight:700,color:'#1e293b',flexShrink:0}}>{allCats.find(c=>c.id===cat)?.label||cat.toUpperCase()}</span>
+        <div style={{height:isMobile?52:48,display:'flex',alignItems:'center',justifyContent:'space-between',padding:isMobile?'0 12px':'0 16px',background:'white',borderBottom:'1px solid #e8ecf0',flexShrink:0,gap:8,position:isMobile?'sticky':'static',top:0,zIndex:100}}>
+          <span style={{fontSize:isMobile?14:13,fontWeight:700,color:'#1e293b',flexShrink:0}}>{allCats.find(c=>c.id===cat)?.label||cat.toUpperCase()}</span>
           <div style={{display:'flex',alignItems:'center',gap:isMobile?5:7,flex:1,justifyContent:'flex-end'}}>
             {/* Indicador Firebase sync */}
             {syncStatus==='connecting'&&(
@@ -1627,33 +1933,6 @@ function App(){
                 {!isMobile&&'Sincronizado'}
               </span>
             )}
-            {/* Botón subir datos locales a Firebase */}
-            <button onClick={pushLocalToFirebase} title="Subir datos locales a Firebase"
-              style={{border:'none',background:'#16a34a',cursor:'pointer',color:'white',padding:'5px 10px',fontSize:11,borderRadius:6,flexShrink:0,fontWeight:700,whiteSpace:'nowrap'}}>
-              ↑ Firebase
-            </button>
-            <button onClick={forceReloadFromFirebase} title="Recargar datos de Firebase"
-              style={{border:'none',background:'#2563eb',cursor:'pointer',color:'white',padding:'5px 12px',fontSize:12,borderRadius:6,flexShrink:0,fontWeight:700}}>
-              ↺ Cargar
-            </button>
-            {/* Exportar / Importar */}
-            <button onClick={exportData} title="Exportar datos como JSON"
-              style={{border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',padding:'4px 8px',fontSize:11,borderRadius:6,flexShrink:0}}
-              onMouseEnter={e=>e.currentTarget.style.background='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              ↓ JSON
-            </button>
-            <label title="Importar datos desde JSON"
-              style={{border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',padding:'4px 8px',fontSize:11,borderRadius:6,flexShrink:0,display:'flex',alignItems:'center'}}
-              onMouseEnter={e=>e.currentTarget.style.background='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              ↑ JSON
-              <input type="file" accept=".json" style={{display:'none'}} onChange={e=>{
-                const file=e.target.files[0];if(!file)return;
-                const reader=new FileReader();
-                reader.onload=ev=>importData(ev.target.result);
-                reader.readAsText(file);
-                e.target.value='';
-              }}/>
-            </label>
             {syncStatus==='saving'&&(
               <span style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'#f59e0b',flexShrink:0}}>
                 <span style={{width:6,height:6,borderRadius:'50%',background:'#f59e0b',display:'inline-block',animation:'pulse 1s infinite'}}/>
@@ -1673,37 +1952,10 @@ function App(){
               </span>
             )}
             {!isMobile&&<div style={{width:1,height:20,background:'#e8ecf0',flexShrink:0}}/>}
-            {/* Botón Google Calendar */}
-            {gcalStatus==='idle'&&(
-              <button onClick={connectGcal}
-                style={{display:'flex',alignItems:'center',gap:5,padding:'4px 9px',borderRadius:6,border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',fontSize:10,flexShrink:0,whiteSpace:'nowrap'}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='#93c5fd';e.currentTarget.style.color='#2563eb';}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                {!isMobile&&'Google Cal'}
-              </button>
-            )}
-            {gcalStatus==='loading'&&(
-              <span style={{fontSize:10,color:'#f59e0b',flexShrink:0,display:'flex',alignItems:'center',gap:4}}>
-                <span style={{width:6,height:6,borderRadius:'50%',background:'#f59e0b',display:'inline-block',animation:'pulse 1s infinite'}}/>
-                {!isMobile&&'Conectando…'}
-              </span>
-            )}
-            {gcalStatus==='connected'&&(
-              <button onClick={connectGcal} title="Reconectar Google Calendar"
-                style={{fontSize:10,color:'#16a34a',flexShrink:0,display:'flex',alignItems:'center',gap:4,border:'none',background:'transparent',cursor:'pointer'}}>
-                <span style={{width:6,height:6,borderRadius:'50%',background:'#16a34a',display:'inline-block'}}/>
-                {!isMobile&&'Google Cal ✓'}
-              </button>
-            )}
-            {gcalStatus==='error'&&(
-              <button onClick={connectGcal} title="Reintentar"
-                style={{fontSize:10,color:'#ef4444',flexShrink:0,display:'flex',alignItems:'center',gap:4,border:'none',background:'transparent',cursor:'pointer'}}>
-                <span style={{width:6,height:6,borderRadius:'50%',background:'#ef4444',display:'inline-block'}}/>
-                {!isMobile&&'Cal error'}
-              </button>
-            )}
-            {!isMobile&&<div style={{width:1,height:20,background:'#e8ecf0',flexShrink:0}}/>}
+            <button onClick={pushLocalToFirebase} title="Subir datos locales a Firebase"
+              style={{border:'none',background:'#16a34a',cursor:'pointer',color:'white',padding:'5px 10px',fontSize:11,borderRadius:6,flexShrink:0,fontWeight:700}}>
+              ↑ Firebase
+            </button>
             {!isMobile&&(
               <button onClick={()=>sPalette(true)} style={{display:'flex',alignItems:'center',gap:5,padding:'5px 9px',borderRadius:6,border:'1px solid #e2e8f0',background:'transparent',cursor:'pointer',color:'#64748b',fontSize:11,flexShrink:0}}>
                 <Ico n="zap" s={12}/>Captura rápida<kbd style={{fontSize:9,color:'#cbd5e1',marginLeft:3}}>⌘K</kbd>
@@ -1741,8 +1993,7 @@ function App(){
 
           {cat==='meses'&&(
             <MesesView allData={monthAllData} monthAIdx={monthAIdx} monthBIdx={monthBIdx}
-              onChangeA={sMonthAIdx} onChangeB={sMonthBIdx} onSetText={setMonthText}
-              gcalEvents={gcalEvents}/>
+              onChangeA={sMonthAIdx} onChangeB={sMonthBIdx} onSetText={setMonthText}/>
           )}
 
           {cat==='home'&&(
@@ -1759,7 +2010,7 @@ function App(){
                 onAddVarios={addDayVarios}
                 onDeleteVarios={delDayVarios}
                 onUpdateVarios={updDayVarios}
-                onMoveToWeek={(task,dateStr,slot,source)=>moveTodayToWeek(task,dateStr,slot,source)}
+                onMoveToWeek={(task,day,slot,source)=>moveTodayToWeek(task,day,slot,source,getWeekKey(getMondayWithOffset(weekOffset)))}
                 onMoveToBlock={moveTodayToBlock}
                 allBlocks={pickerBlocks}
                 blockNames={allBlockNames}
@@ -1777,8 +2028,6 @@ function App(){
                 onDeleteBlock={deleteBlock}
                 weekOffset={weekOffset}
                 onOffsetChange={sWeekOffset}
-                isMobile={isMobile}
-                gcalEvents={gcalEvents}
               />
 
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
@@ -1807,7 +2056,7 @@ function App(){
                   onDelete={id=>delTask(b.id,id)}
                   onToday={t=>{moveToTodayFromBlock(t);delTask(b.id,t.id);}}
                   onToVarios={t=>{moveToVariosFromBlock(t);delTask(b.id,t.id);}}
-                  onToWeek={(t,dateStr)=>{const wk=getWeekKey(getMondayWithOffset(weekOffset));const d=new Date(dateStr+'T12:00:00');const wkTarget=getWeekKey(getMondayOf(d));const dayKey=WDAYS[((d.getDay()+6)%7)];moveBlockToWeek(t,b.id,dayKey,wkTarget,dateStr);}}
+                  onToWeek={(t,day)=>{const wk=getWeekKey(getMondayWithOffset(weekOffset));moveBlockToWeek(t,b.id,day,wk);}}
                   onMoveBlock={moveBlock}
                   onRenameBlock={renameBlock}
                   onDeleteBlock={()=>deleteBlock(b.id)}
