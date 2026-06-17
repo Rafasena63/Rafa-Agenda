@@ -1681,7 +1681,9 @@ function App(){
     }catch(e){alert('❌ Error: '+e.message);}
   };
 
+  const _firstRender=useRef(true);
   useEffect(()=>{
+    if(_firstRender.current){_firstRender.current=false;return;}
     _ignoreNextSave.current=true;
     save({tasks,dayWork,dayVarios,week,monthAllData,monthAIdx,monthBIdx,customBlocks,blockNames,blockCats,customCats,collapsedBlocks,hiddenBlocks,blockOrderIds,catOrder,hiddenCats});
   },[tasks,dayWork,dayVarios,week,monthAllData,monthAIdx,monthBIdx,customBlocks,blockNames,blockCats,customCats,collapsedBlocks,hiddenBlocks,blockOrderIds,catOrder,hiddenCats]);
